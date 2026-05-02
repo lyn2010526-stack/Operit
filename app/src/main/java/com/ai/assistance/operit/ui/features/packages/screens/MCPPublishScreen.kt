@@ -14,6 +14,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.data.mcp.MCPRepository
 import com.ai.assistance.operit.ui.features.packages.screens.mcp.viewmodel.MCPMarketViewModel
 import com.ai.assistance.operit.data.api.GitHubIssue
 import kotlinx.coroutines.launch
@@ -24,9 +25,18 @@ import androidx.compose.material.icons.filled.Terminal
 fun MCPPublishScreen(
     onNavigateBack: () -> Unit,
     editingIssue: GitHubIssue? = null, // 如果不为null，则为编辑模式
-    viewModel: MCPMarketViewModel = viewModel()
+    providedViewModel: MCPMarketViewModel? = null
 ) {
     val context = LocalContext.current
+    val mcpRepository = remember { MCPRepository(context.applicationContext) }
+    val viewModel: MCPMarketViewModel =
+        providedViewModel
+            ?: viewModel(
+                factory = MCPMarketViewModel.Factory(
+                    context.applicationContext,
+                    mcpRepository
+                )
+            )
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     
@@ -264,8 +274,7 @@ fun MCPPublishScreen(
                             errorMessage = null
                             
                             try {
-                                val success = if (isEditMode && editingIssue != null) {
-                                    // 编辑模式：更新现有插件
+                                val result = if (isEditMode && editingIssue != null) {
                                     viewModel.updatePublishedPlugin(
                                         issueNumber = editingIssue.number,
                                         title = title,
@@ -276,9 +285,7 @@ fun MCPPublishScreen(
                                         installConfig = installConfig,
                                         version = version
                                     )
-                                    true
                                 } else {
-                                    // 新建模式：发布新插件
                                     viewModel.publishMCP(
                                         title = title,
                                         description = description,
@@ -289,16 +296,24 @@ fun MCPPublishScreen(
                                         version = version
                                     )
                                 }
-                                
-                                if (success) {
-                                    if (!isEditMode) {
-                                        // 只在新建模式下清空草稿
-                                        viewModel.clearDraft()
+
+                                result.fold(
+                                    onSuccess = {
+                                        if (!isEditMode) {
+                                            viewModel.clearDraft()
+                                        }
+                                        showSuccessDialog = true
+                                    },
+                                    onFailure = { error ->
+                                        errorMessage =
+                                            error.message
+                                                ?: if (isEditMode) {
+                                                    context.getString(R.string.update_failed_check_network)
+                                                } else {
+                                                    context.getString(R.string.publish_failed_check_network_repo)
+                                                }
                                     }
-                                    showSuccessDialog = true
-                                } else {
-                                    errorMessage = if (isEditMode) context.getString(R.string.update_failed_check_network) else context.getString(R.string.publish_failed_check_network_repo)
-                                }
+                                )
                             } catch (e: Exception) {
                                 errorMessage = if (isEditMode) context.getString(R.string.update_failed_with_error, e.message ?: "") else context.getString(R.string.publish_failed_with_error, e.message ?: "")
                             } finally {

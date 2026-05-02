@@ -15,15 +15,15 @@ import com.ai.assistance.operit.data.api.MarketStatsApiService
 import com.ai.assistance.operit.data.mcp.MCPRepository
 import com.ai.assistance.operit.data.mcp.MCPLocalServer
 import com.ai.assistance.operit.data.preferences.GitHubAuthPreferences
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.ai.assistance.operit.util.AppLogger
 import android.content.SharedPreferences
 import android.net.Uri
@@ -117,7 +117,6 @@ class MCPMarketViewModel(
 
     // 已安装插件
     val installedPluginIds: StateFlow<Set<String>> = mcpRepository.installedPluginIds
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
     // MCP市场数据
     private val _mcpItems = MutableStateFlow<List<McpMarketBrowseItem>>(emptyList())
@@ -489,13 +488,13 @@ class MCPMarketViewModel(
                                 return@launch
                             }
 
-                            _installingPlugins.value = _installingPlugins.value - pluginId
+                            mcpRepository.refreshPluginList()
                             Toast.makeText(
                                 context,
                                 context.getString(R.string.mcp_market_config_import_success_with_count, issue.title, count),
                                 Toast.LENGTH_SHORT
                             ).show()
-                            mcpRepository.refreshPluginList()
+                            _installingPlugins.value = _installingPlugins.value - pluginId
                             return@launch
                         } else {
                             AppLogger.d(TAG, "Config contains commands that need physical installation, proceeding with normal installation flow")
@@ -528,10 +527,6 @@ class MCPMarketViewModel(
                         _installProgress.value = _installProgress.value + (pluginId to progress)
                     }
 
-                    // 清除安装状态
-                    _installingPlugins.value = _installingPlugins.value - pluginId
-                    _installProgress.value = _installProgress.value - pluginId
-
                     when (result) {
                         is com.ai.assistance.operit.data.mcp.InstallResult.Success -> {
                             Toast.makeText(
@@ -539,9 +534,13 @@ class MCPMarketViewModel(
                                 context.getString(R.string.mcp_market_install_success, issue.title),
                                 Toast.LENGTH_SHORT
                             ).show()
+                            _installProgress.value = _installProgress.value - pluginId
+                            _installingPlugins.value = _installingPlugins.value - pluginId
                             AppLogger.i(TAG, "Successfully installed MCP: ${issue.title}")
                         }
                         is com.ai.assistance.operit.data.mcp.InstallResult.Error -> {
+                            _installProgress.value = _installProgress.value - pluginId
+                            _installingPlugins.value = _installingPlugins.value - pluginId
                             _errorMessage.value = context.getString(R.string.mcp_market_install_failed_with_error, result.message)
                             AppLogger.e(TAG, "Failed to install MCP ${issue.title}: ${result.message}")
                         }
@@ -609,6 +608,7 @@ class MCPMarketViewModel(
                 }
 
                 _isLoading.value = true
+                ensureMcpTitleAvailable(title = title)
 
                 // 构建Issue内容
                 val issueBody = buildMCPIssueBody(description, repoUrl)
@@ -747,6 +747,18 @@ class MCPMarketViewModel(
         _errorMessage.value = null
     }
 
+    fun refreshInstalledPlugins() {
+        viewModelScope.launch {
+            refreshInstalledPluginsInternal()
+        }
+    }
+
+    private suspend fun refreshInstalledPluginsInternal() {
+        withContext(Dispatchers.IO) {
+            mcpRepository.refreshInstalledPlugins()
+        }
+    }
+
     fun resetUserPublishedPluginsState() {
         _userPublishedPlugins.value = emptyList()
         _hasLoadedUserPublishedPlugins.value = false
@@ -800,7 +812,7 @@ class MCPMarketViewModel(
     /**
      * 更新已发布的插件信息
      */
-    fun updatePublishedPlugin(
+    suspend fun updatePublishedPlugin(
         issueNumber: Int,
         title: String,
         description: String,
@@ -809,55 +821,56 @@ class MCPMarketViewModel(
         tags: String,
         installConfig: String,
         version: String = "v1"
-    ) {
-        viewModelScope.launch {
-            if (!githubAuth.isLoggedIn()) {
-                _errorMessage.value = context.getString(R.string.mcp_market_github_login_required)
-                return@launch
-            }
+    ): Result<Unit> {
+        if (!githubAuth.isLoggedIn()) {
+            return Result.failure(IllegalStateException("GitHub 登录后才能更新 MCP。"))
+        }
 
-            _isLoading.value = true
-            _errorMessage.value = null
+        _isLoading.value = true
+        _errorMessage.value = null
 
-            try {
-                val body = buildMCPPublishIssueBody(
-                    description = description,
-                    repositoryUrl = repositoryUrl,
-                    category = category,
-                    tags = tags,
-                    installConfig = installConfig,
-                    version = version
-                )
+        return try {
+            ensureMcpTitleAvailable(
+                title = title,
+                currentIssueNumber = issueNumber
+            )
 
-                val result = marketService.updateIssueContent(
-                    issueNumber = issueNumber,
-                    title = title,
-                    body = body
-                )
+            val body = buildMCPPublishIssueBody(
+                description = description,
+                repositoryUrl = repositoryUrl,
+                category = category,
+                tags = tags,
+                installConfig = installConfig,
+                version = version
+            )
 
-                result.fold(
-                    onSuccess = { updatedIssue ->
-                        AppLogger.d(TAG, "Successfully updated issue #${issueNumber}")
-                        Toast.makeText(
-                            context,
-                            context.getString(R.string.mcp_market_update_plugin_success_toast),
-                            Toast.LENGTH_SHORT
-                        ).show()
+            val result = marketService.updateIssueContent(
+                issueNumber = issueNumber,
+                title = title,
+                body = body
+            )
 
-                        // 刷新用户发布的插件列表
-                        loadUserPublishedPlugins()
-                    },
-                    onFailure = { error ->
-                        AppLogger.e(TAG, "Failed to update issue #${issueNumber}", error)
-                        _errorMessage.value = context.getString(R.string.update_failed_with_error, error.message ?: "")
-                    }
-                )
-            } catch (e: Exception) {
-                _errorMessage.value = context.getString(R.string.update_failed_with_error, e.message ?: "")
-                AppLogger.e(TAG, "Failed to update published plugin", e)
-            } finally {
-                _isLoading.value = false
-            }
+            result.fold(
+                onSuccess = {
+                    AppLogger.d(TAG, "Successfully updated issue #$issueNumber")
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.mcp_market_update_plugin_success_toast),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    loadUserPublishedPlugins()
+                    Result.success(Unit)
+                },
+                onFailure = { error ->
+                    AppLogger.e(TAG, "Failed to update issue #$issueNumber", error)
+                    Result.failure(error)
+                }
+            )
+        } catch (e: Exception) {
+            AppLogger.e(TAG, "Failed to update published plugin", e)
+            Result.failure(e)
+        } finally {
+            _isLoading.value = false
         }
     }
 
@@ -1033,8 +1046,14 @@ class MCPMarketViewModel(
         tags: String,
         installConfig: String,
         version: String = "v1"
-    ): Boolean {
+    ): Result<Unit> {
         return try {
+            if (!githubAuth.isLoggedIn()) {
+                return Result.failure(IllegalStateException("GitHub 登录后才能发布 MCP。"))
+            }
+
+            ensureMcpTitleAvailable(title = title)
+
             val body = buildMCPPublishIssueBody(
                 description = description,
                 repositoryUrl = repositoryUrl,
@@ -1049,11 +1068,44 @@ class MCPMarketViewModel(
                 body = body
             )
 
-            result.isSuccess
+            result.fold(
+                onSuccess = { Result.success(Unit) },
+                onFailure = { Result.failure(it) }
+            )
         } catch (e: Exception) {
             AppLogger.e(TAG, "Failed to publish MCP", e)
-            false
+            Result.failure(e)
         }
+    }
+
+    private suspend fun ensureMcpTitleAvailable(
+        title: String,
+        currentIssueNumber: Int? = null
+    ) {
+        val trimmedTitle = title.trim()
+        if (trimmedTitle.isBlank()) {
+            throw IllegalArgumentException("MCP 名称不能为空。")
+        }
+
+        val issues =
+            marketService.searchOpenIssuesByExactTitle(trimmedTitle).getOrElse { error ->
+                throw IllegalStateException(
+                    "检查 MCP 名称是否重名失败：${error.message ?: "GitHub 搜索失败"}"
+                )
+            }
+        val normalizedTitle = normalizePublishTitle(trimmedTitle)
+        val conflictingIssue =
+            issues.firstOrNull { issue ->
+                issue.number != currentIssueNumber &&
+                    normalizePublishTitle(issue.title) == normalizedTitle
+            }
+        if (conflictingIssue != null) {
+            throw IllegalStateException("MCP 市场里已经有同名插件「$trimmedTitle」，请换一个名称。")
+        }
+    }
+
+    private fun normalizePublishTitle(title: String): String {
+        return title.trim().replace(Regex("\\s+"), " ").lowercase()
     }
 
     /**

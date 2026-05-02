@@ -145,6 +145,45 @@ export interface ComposeWebViewErrorEvent {
   url?: string | null;
 }
 
+export interface ComposeWebViewHttpErrorEvent {
+  statusCode?: number | null;
+  reasonPhrase?: string | null;
+  url?: string | null;
+  isMainFrame?: boolean;
+}
+
+export interface ComposeWebViewSslErrorEvent {
+  primaryError?: number | null;
+  url?: string | null;
+}
+
+export interface ComposeWebViewDownloadEvent {
+  url: string;
+  userAgent?: string | null;
+  contentDisposition?: string | null;
+  mimeType?: string | null;
+  contentLength?: number | null;
+  suggestedFileName?: string | null;
+}
+
+export interface ComposeWebViewConsoleEvent {
+  message?: string | null;
+  sourceId?: string | null;
+  lineNumber?: number | null;
+  level?: string | null;
+}
+
+export type ComposeWebViewMixedContentMode =
+  | "alwaysAllow"
+  | "neverAllow"
+  | "compatibilityMode";
+
+export type ComposeWebViewCacheMode =
+  | "default"
+  | "noCache"
+  | "cacheElseNetwork"
+  | "cacheOnly";
+
 declare global {
   interface Number {
     readonly px: ComposeUnitValue;
@@ -349,6 +388,7 @@ export type ComposeModifierProxy = ComposeModifierValue & {
 export interface ComposeTextFieldStyle {
   fontSize?: number;
   fontWeight?: string;
+  fontFamily?: string;
   color?: ComposeColor;
 }
 
@@ -362,13 +402,21 @@ export interface ComposeCommonProps {
   weightFill?: boolean;
   width?: number;
   height?: number;
+  fillMaxHeight?: boolean;
   padding?: number | ComposePadding;
+  paddingStart?: number;
+  paddingTop?: number;
+  paddingEnd?: number;
   paddingHorizontal?: number;
   paddingVertical?: number;
   paddingBottom?: number;
   spacing?: number;
   fillMaxWidth?: boolean;
   fillMaxSize?: boolean;
+  background?: ComposeColor;
+  backgroundColor?: ComposeColor;
+  containerColor?: ComposeColor;
+  backgroundAlpha?: number;
   backgroundBrush?: ComposeCanvasBrush;
   backgroundShape?: ComposeShape;
 }
@@ -402,6 +450,7 @@ export interface TextProps extends ComposeCommonProps {
   color?: ComposeColor;
   fontWeight?: string;
   fontSize?: number;
+  fontFamily?: string;
   maxLines?: number;
   softWrap?: boolean;
   overflow?: ComposeTextOverflow;
@@ -458,6 +507,7 @@ export interface IconButtonProps extends ComposeCommonProps {
   icon?: string;
   enabled?: boolean;
   onClick: () => void | Promise<void>;
+  shape?: ComposeShape;
 }
 
 export interface CardProps extends ComposeCommonProps {
@@ -520,16 +570,33 @@ export interface WebViewProps extends ComposeCommonProps {
   headers?: Record<string, string>;
   javaScriptEnabled?: boolean;
   domStorageEnabled?: boolean;
+  databaseEnabled?: boolean;
+  javaScriptCanOpenWindowsAutomatically?: boolean;
+  supportMultipleWindows?: boolean;
   allowFileAccess?: boolean;
   allowContentAccess?: boolean;
+  allowFileAccessFromFileURLs?: boolean;
+  allowUniversalAccessFromFileURLs?: boolean;
   userAgent?: string;
   nestedScrollInterop?: boolean;
   supportZoom?: boolean;
+  builtInZoomControls?: boolean;
+  displayZoomControls?: boolean;
   useWideViewPort?: boolean;
   loadWithOverviewMode?: boolean;
+  mixedContentMode?: ComposeWebViewMixedContentMode;
+  mediaPlaybackRequiresUserGesture?: boolean;
+  textZoom?: number;
+  cacheMode?: ComposeWebViewCacheMode;
+  safeBrowsingEnabled?: boolean;
+  acceptThirdPartyCookies?: boolean;
   onPageStarted?: (event: ComposeWebViewPageEvent) => void | Promise<void>;
   onPageFinished?: (event: ComposeWebViewPageEvent) => void | Promise<void>;
   onReceivedError?: (event: ComposeWebViewErrorEvent) => void | Promise<void>;
+  onReceivedHttpError?: (event: ComposeWebViewHttpErrorEvent) => void | Promise<void>;
+  onReceivedSslError?: (event: ComposeWebViewSslErrorEvent) => void | Promise<void>;
+  onDownloadStart?: (event: ComposeWebViewDownloadEvent) => void | Promise<void>;
+  onConsoleMessage?: (event: ComposeWebViewConsoleEvent) => void | Promise<void>;
   onUrlChanged?: (event: ComposeWebViewNavigationEvent) => void | Promise<void>;
   onProgressChanged?: (event: ComposeWebViewProgressEvent) => void | Promise<void>;
 }

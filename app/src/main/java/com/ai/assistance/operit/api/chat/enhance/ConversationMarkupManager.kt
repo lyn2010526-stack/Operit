@@ -2,7 +2,7 @@ package com.ai.assistance.operit.api.chat.enhance
 
 import android.content.Context
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.core.tools.ToolExecutionLimits
 import com.ai.assistance.operit.util.ChatMarkupRegex
 import com.ai.assistance.operit.data.model.ToolResult
 
@@ -15,28 +15,8 @@ import com.ai.assistance.operit.data.model.ToolResult
 class ConversationMarkupManager {
 
     companion object {
-        private const val TAG = "ConversationMarkupManager"
-        private const val STATUS_COMPLETE = "complete"
-        private const val STATUS_WAIT_FOR_USER_NEED = "wait_for_user_need"
-
-        /**
-         * Creates a 'complete' status markup element.
-         *
-         * @return The formatted status element
-         */
-        fun createCompleteStatus(): String {
-            return "<status type=\"$STATUS_COMPLETE\"></status>"
-        }
-
-        /**
-         * Creates a 'wait for user need' status markup element. Similar to complete but doesn't
-         * trigger problem analysis.
-         *
-         * @return The formatted status element
-         */
-        fun createWaitForUserNeedStatus(): String {
-            return "<status type=\"$STATUS_WAIT_FOR_USER_NEED\"></status>"
-        }
+        private const val TOOL_RESULT_TRUNCATION_SUFFIX =
+            "\n[工具结果过长，已截断]"
 
         /**
          * Creates an 'error' status markup element for a tool.
@@ -72,18 +52,47 @@ class ConversationMarkupManager {
          */
         fun formatToolResultForMessage(result: ToolResult): String {
             return if (result.success) {
-                createToolResultXml(
+                createBoundedToolResultXml(
                     toolName = result.toolName,
                     status = "success",
-                    content = "<content>${result.result}</content>"
-                )
+                    rawPayload = result.result.toString()
+                ) { payload ->
+                    "<content>$payload</content>"
+                }
             } else {
-                createToolResultXml(
+                createBoundedToolResultXml(
                     toolName = result.toolName,
                     status = "error",
-                    content = "<content><error>${result.error ?: "Unknown error"}</error></content>"
-                )
+                    rawPayload = result.error ?: "Unknown error"
+                ) { payload ->
+                    "<content><error>$payload</error></content>"
+                }
             }
+        }
+
+        fun buildBoundedToolResultMessage(results: List<ToolResult>): String {
+            if (results.isEmpty()) {
+                return ""
+            }
+
+            val maxChars = ToolExecutionLimits.MAX_FINAL_TOOL_RESULT_MESSAGE_CHARS
+            val separator = "\n"
+            val builder = StringBuilder()
+
+            for (result in results) {
+                val formatted = formatToolResultForMessage(result)
+                val additionalLength =
+                    (if (builder.isEmpty()) 0 else separator.length) + formatted.length
+                if (builder.length + additionalLength > maxChars) {
+                    break
+                }
+                if (builder.isNotEmpty()) {
+                    builder.append(separator)
+                }
+                builder.append(formatted)
+            }
+
+            return builder.toString()
         }
 
         /**
@@ -112,86 +121,47 @@ class ConversationMarkupManager {
             return createToolErrorStatus(toolName, errorMessage)
         }
 
-        /**
-         * Creates a warning when tools and task completion are reported together.
-         *
-         * @param context The context to access string resources
-         * @param toolNames The names of the tools involved
-         * @return The formatted warning message
-         */
-        fun createToolsSkippedByCompletionWarning(context: Context, toolNames: List<String>): String {
-            val uniqueNames =
-                    toolNames.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
-            val toolDescription =
-                    if (uniqueNames.isEmpty()) {
-                        context.getString(R.string.conversation_markup_tool_calls)
-                    } else {
-                        context.getString(R.string.conversation_markup_tools_call, uniqueNames.joinToString("`, `"))
-                    }
-            val message =
-                    context.getString(R.string.conversation_markup_completion_with_tools_warning, toolDescription) +
-                            context.getString(R.string.conversation_markup_completion_with_tools_hint)
-            return createWarningStatus(message)
-        }
-
-        /**
-         * Cleans task completion content by removing the completion marker and adding a completion
-         * status.
-         *
-         * @param content The content to clean
-         * @return The cleaned content with completion status
-         */
-        fun createTaskCompletionContent(content: String): String {
-            return content.replace("<status type=\"$STATUS_COMPLETE\"></status>", "").trim() +
-                    "\n" +
-                    createCompleteStatus()
-        }
-
-        /**
-         * Cleans wait for user need content by removing the marker and adding the appropriate
-         * status.
-         *
-         * @param content The content to clean
-         * @return The cleaned content with wait_for_user_need status
-         */
-        fun createWaitForUserNeedContent(content: String): String {
-            return content.replace("<status type=\"$STATUS_WAIT_FOR_USER_NEED\"></status>", "").trim() +
-                    "\n" +
-                    createWaitForUserNeedStatus()
-        }
-
-        /**
-         * Checks if content contains a task completion marker.
-         *
-         * @param content The content to check
-         * @return True if the content contains a task completion marker
-         */
-        fun containsTaskCompletion(content: String): Boolean {
-            return containsStatusType(content, STATUS_COMPLETE)
-        }
-
-        /**
-         * Checks if content contains a wait for user need marker.
-         *
-         * @param content The content to check
-         * @return True if the content contains a wait for user need marker
-         */
-        fun containsWaitForUserNeed(content: String): Boolean {
-            return containsStatusType(content, STATUS_WAIT_FOR_USER_NEED)
-        }
-
-        private fun containsStatusType(content: String, statusType: String): Boolean {
-            val escapedType = Regex.escape(statusType)
-            val statusRegex = Regex(
-                "<status\\b[^>]*\\btype\\s*=\\s*\"$escapedType\"[^>]*(?:/>|>[\\s\\S]*?</status>)",
-                setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
-            )
-            return statusRegex.containsMatchIn(content)
-        }
-
         private fun createToolResultXml(toolName: String, status: String, content: String): String {
             val tagName = ChatMarkupRegex.generateRandomToolResultTagName()
             return """<$tagName name="$toolName" status="$status">$content</$tagName>""".trimIndent()
+        }
+
+        private fun createBoundedToolResultXml(
+            toolName: String,
+            status: String,
+            rawPayload: String,
+            bodyBuilder: (String) -> String
+        ): String {
+            val emptyXml =
+                createToolResultXml(
+                    toolName = toolName,
+                    status = status,
+                    content = bodyBuilder("")
+                )
+            val maxPayloadChars =
+                (ToolExecutionLimits.MAX_FINAL_TOOL_RESULT_MESSAGE_CHARS - emptyXml.length)
+                    .coerceAtLeast(0)
+            val boundedPayload = truncatePayload(rawPayload, maxPayloadChars)
+            return createToolResultXml(
+                toolName = toolName,
+                status = status,
+                content = bodyBuilder(boundedPayload)
+            )
+        }
+
+        private fun truncatePayload(payload: String, maxChars: Int): String {
+            if (payload.length <= maxChars) {
+                return payload
+            }
+            if (maxChars <= 0) {
+                return ""
+            }
+            if (TOOL_RESULT_TRUNCATION_SUFFIX.length >= maxChars) {
+                return TOOL_RESULT_TRUNCATION_SUFFIX.take(maxChars)
+            }
+            return payload
+                .take(maxChars - TOOL_RESULT_TRUNCATION_SUFFIX.length)
+                .trimEnd() + TOOL_RESULT_TRUNCATION_SUFFIX
         }
 
     }

@@ -82,7 +82,6 @@ import coil.compose.rememberAsyncImagePainter
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 
 /** 渲染悬浮窗的窗口模式界面 - 简化版 */
 @Composable
@@ -237,7 +236,8 @@ private fun RecentChatSelectorOverlay(
                                         Color.Transparent
                                 )
                                 .clickable {
-                                    chatCore?.switchChatLocal(history.id)
+                                    // 使用 FloatingChatService 的 switchChat 方法，支持动态 core 切换
+                                    floatContext.chatService?.switchChat(history.id)
                                     onDismiss()
                                 }
                                 .padding(horizontal = 16.dp, vertical = 10.dp),
@@ -459,30 +459,32 @@ private fun TitleBar(
                         icon = Icons.Default.Home,
                         description = stringResource(R.string.floating_back_to_main),
                         onClick = {
-                            // 启动 MainActivity 返回主应用
                             try {
-                                val context = floatContext.chatService
-                                if (context != null) {
-                                    runBlocking {
+                                val service = floatContext.chatService
+                                if (service != null) {
+                                    floatContext.coroutineScope.launch {
                                         try {
-                                            context.getChatCore().syncCurrentChatIdToGlobal()
-                                        } catch (_: Exception) {
+                                            service.handoffCurrentCoreToMain()
+                                            val intent = Intent(
+                                                service,
+                                                com.ai.assistance.operit.ui.main.MainActivity::class.java
+                                            ).apply {
+                                                flags =
+                                                    Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                                            }
+                                            service.startActivity(intent)
+                                        } catch (e: Exception) {
+                                            AppLogger.e("FloatingChatWindow", "启动 MainActivity 失败", e)
                                         }
+                                        floatContext.onClose()
                                     }
-                                    val intent = Intent(
-                                        context,
-                                        com.ai.assistance.operit.ui.main.MainActivity::class.java
-                                    ).apply {
-                                        flags =
-                                            Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
-                                    }
-                                    context.startActivity(intent)
+                                } else {
+                                    floatContext.onClose()
                                 }
                             } catch (e: Exception) {
                                 AppLogger.e("FloatingChatWindow", "启动 MainActivity 失败", e)
+                                floatContext.onClose()
                             }
-                            // 然后关闭悬浮窗
-                            floatContext.onClose()
                         }
                     )
                     // 关闭按钮
@@ -702,9 +704,10 @@ private fun ChatMessagesView(
         ) {
             itemsIndexed(
                 items = renderItems,
-                key = { _, item ->
+                key = { renderIndex, item ->
                     when (item) {
-                        is com.ai.assistance.operit.data.model.ChatMessage -> item.timestamp
+                        is com.ai.assistance.operit.data.model.ChatMessage ->
+                            "floating_message_${item.timestamp}_${renderIndex}_${item.sender}"
                         FloatingLoadMoreItem -> "floating_load_more_history"
                         FloatingLoadingItem -> "floating_loading_indicator"
                         else -> item.hashCode()
@@ -893,9 +896,11 @@ private fun ColumnScope.InputTextField(
 ) {
     val focusRequester = remember { FocusRequester() }
 
-    // 检测 AI 是否正在处理消息 - 使用 chatService 的 isLoading 状态
+    val inputProcessingState = floatContext.inputProcessingState.value
     val isProcessing =
-        floatContext.chatService?.getChatCore()?.isLoading?.collectAsState()?.value ?: false
+        inputProcessingState !is InputProcessingState.Idle &&
+            inputProcessingState !is InputProcessingState.Completed &&
+            inputProcessingState !is InputProcessingState.Error
 
     DisposableEffect(floatContext.showInputDialog) {
         if (floatContext.showInputDialog) {
@@ -1291,5 +1296,3 @@ private fun ProcessingStatusIndicator(floatContext: FloatContext) {
         }
     }
 }
-
-

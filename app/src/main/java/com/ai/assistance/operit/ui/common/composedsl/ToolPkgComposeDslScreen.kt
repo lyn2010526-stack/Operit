@@ -7,13 +7,17 @@ import android.os.Build
 import android.webkit.ConsoleMessage
 import android.webkit.GeolocationPermissions
 import android.webkit.PermissionRequest
+import android.webkit.SslErrorHandler
+import android.webkit.URLUtil
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceResponse
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.net.http.SslError
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -118,6 +122,8 @@ import com.ai.assistance.operit.ui.main.components.LocalIsCurrentScreen
 import com.ai.assistance.operit.ui.main.components.LocalSetScreenSoftInputMode
 import com.ai.assistance.operit.ui.main.components.LocalSetUseScreenImePadding
 import com.ai.assistance.operit.ui.features.token.webview.WebViewConfig
+import com.ai.assistance.operit.ui.theme.getSystemFontFamily
+import com.ai.assistance.operit.ui.theme.loadCustomFontFamily
 import com.ai.assistance.operit.util.AppLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -786,6 +792,10 @@ private data class ComposeDslWebViewCallbackIds(
     val onPageStarted: String?,
     val onPageFinished: String?,
     val onReceivedError: String?,
+    val onReceivedHttpError: String?,
+    val onReceivedSslError: String?,
+    val onDownloadStart: String?,
+    val onConsoleMessage: String?,
     val onUrlChanged: String?,
     val onProgressChanged: String?
 )
@@ -1259,6 +1269,10 @@ private fun renderWebViewNode(
                 onPageStarted = ToolPkgComposeDslParser.extractActionId(props["onPageStarted"]),
                 onPageFinished = ToolPkgComposeDslParser.extractActionId(props["onPageFinished"]),
                 onReceivedError = ToolPkgComposeDslParser.extractActionId(props["onReceivedError"]),
+                onReceivedHttpError = ToolPkgComposeDslParser.extractActionId(props["onReceivedHttpError"]),
+                onReceivedSslError = ToolPkgComposeDslParser.extractActionId(props["onReceivedSslError"]),
+                onDownloadStart = ToolPkgComposeDslParser.extractActionId(props["onDownloadStart"]),
+                onConsoleMessage = ToolPkgComposeDslParser.extractActionId(props["onConsoleMessage"]),
                 onUrlChanged = ToolPkgComposeDslParser.extractActionId(props["onUrlChanged"]),
                 onProgressChanged = ToolPkgComposeDslParser.extractActionId(props["onProgressChanged"])
             )
@@ -1389,6 +1403,46 @@ private fun renderWebViewNode(
                             )
                         }
                     }
+
+                    override fun onReceivedHttpError(
+                        view: WebView?,
+                        request: WebResourceRequest?,
+                        errorResponse: WebResourceResponse?
+                    ) {
+                        super.onReceivedHttpError(view, request, errorResponse)
+                        val callbackIds = callbackIdsState.value
+                        val actionId = callbackIds.onReceivedHttpError
+                        if (!actionId.isNullOrBlank()) {
+                            onActionState.value(
+                                actionId,
+                                mapOf(
+                                    "statusCode" to errorResponse?.statusCode,
+                                    "reasonPhrase" to errorResponse?.reasonPhrase,
+                                    "url" to request?.url?.toString(),
+                                    "isMainFrame" to (request?.isForMainFrame ?: true)
+                                )
+                            )
+                        }
+                    }
+
+                    override fun onReceivedSslError(
+                        view: WebView?,
+                        handler: SslErrorHandler?,
+                        error: SslError?
+                    ) {
+                        super.onReceivedSslError(view, handler, error)
+                        val callbackIds = callbackIdsState.value
+                        val actionId = callbackIds.onReceivedSslError
+                        if (!actionId.isNullOrBlank()) {
+                            onActionState.value(
+                                actionId,
+                                mapOf(
+                                    "primaryError" to error?.primaryError,
+                                    "url" to error?.url
+                                )
+                            )
+                        }
+                    }
                 }
 
             webChromeClient =
@@ -1407,6 +1461,19 @@ private fun renderWebViewNode(
                     }
 
                     override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
+                        val callbackIds = callbackIdsState.value
+                        val actionId = callbackIds.onConsoleMessage
+                        if (!actionId.isNullOrBlank() && consoleMessage != null) {
+                            onActionState.value(
+                                actionId,
+                                mapOf(
+                                    "message" to consoleMessage.message(),
+                                    "sourceId" to consoleMessage.sourceId(),
+                                    "lineNumber" to consoleMessage.lineNumber(),
+                                    "level" to consoleMessage.messageLevel().name
+                                )
+                            )
+                        }
                         return super.onConsoleMessage(consoleMessage)
                     }
 
@@ -1497,6 +1564,25 @@ private fun renderWebViewNode(
                         return true
                     }
                 }
+
+            setDownloadListener { url, userAgent, contentDisposition, mimeType, contentLength ->
+                val callbackIds = callbackIdsState.value
+                val actionId = callbackIds.onDownloadStart
+                if (!actionId.isNullOrBlank() && !url.isNullOrBlank()) {
+                    onActionState.value(
+                        actionId,
+                        mapOf(
+                            "url" to url,
+                            "userAgent" to userAgent,
+                            "contentDisposition" to contentDisposition,
+                            "mimeType" to mimeType,
+                            "contentLength" to contentLength,
+                            "suggestedFileName" to
+                                URLUtil.guessFileName(url, contentDisposition, mimeType)
+                        )
+                    )
+                }
+            }
         }
     }
 
@@ -1536,24 +1622,38 @@ private fun renderWebViewNode(
         webView.settings.apply {
             javaScriptEnabled = props.bool("javaScriptEnabled", true)
             domStorageEnabled = props.bool("domStorageEnabled", true)
-            databaseEnabled = true
-            javaScriptCanOpenWindowsAutomatically = true
-            setSupportMultipleWindows(true)
+            databaseEnabled = props.bool("databaseEnabled", true)
+            javaScriptCanOpenWindowsAutomatically =
+                props.bool("javaScriptCanOpenWindowsAutomatically", true)
+            setSupportMultipleWindows(props.bool("supportMultipleWindows", true))
             allowFileAccess = props.bool("allowFileAccess", true)
             allowContentAccess = props.bool("allowContentAccess", true)
-            allowFileAccessFromFileURLs = true
-            allowUniversalAccessFromFileURLs = true
+            allowFileAccessFromFileURLs = props.bool("allowFileAccessFromFileURLs", true)
+            allowUniversalAccessFromFileURLs =
+                props.bool("allowUniversalAccessFromFileURLs", true)
             val supportZoom = props.bool("supportZoom", true)
             setSupportZoom(supportZoom)
-            builtInZoomControls = supportZoom
-            displayZoomControls = false
+            builtInZoomControls = props.bool("builtInZoomControls", supportZoom)
+            displayZoomControls = props.bool("displayZoomControls", false)
             loadWithOverviewMode = props.bool("loadWithOverviewMode", true)
             useWideViewPort = props.bool("useWideViewPort", true)
-            cacheMode = WebSettings.LOAD_DEFAULT
+            mediaPlaybackRequiresUserGesture =
+                props.bool("mediaPlaybackRequiresUserGesture", false)
+            textZoom = props.int("textZoom", 100)
+            cacheMode = props.webViewCacheMode("cacheMode")
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                mixedContentMode = props.webViewMixedContentMode("mixedContentMode")
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                safeBrowsingEnabled = props.bool("safeBrowsingEnabled", true)
             }
             props.stringOrNull("userAgent")?.let { userAgentString = it }
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            android.webkit.CookieManager.getInstance().setAcceptThirdPartyCookies(
+                webView,
+                props.bool("acceptThirdPartyCookies", true)
+            )
         }
         val url = request.url
         if (url != null) {
@@ -1598,6 +1698,8 @@ internal fun applyCommonModifier(
 
     if (props.bool("fillMaxSize", false)) {
         modifier = modifier.fillMaxSize()
+    } else if (props.bool("fillMaxHeight", false)) {
+        modifier = modifier.fillMaxHeight()
     } else if (props.bool("fillMaxWidth", false)) {
         modifier = modifier.fillMaxWidth()
     }
@@ -1606,7 +1708,18 @@ internal fun applyCommonModifier(
     if (paddingValue is Map<*, *>) {
         val horizontal = (paddingValue["horizontal"] as? Number)?.toFloat()
         val vertical = (paddingValue["vertical"] as? Number)?.toFloat()
-        if (horizontal != null || vertical != null) {
+        val start = (paddingValue["start"] as? Number)?.toFloat()
+        val top = (paddingValue["top"] as? Number)?.toFloat()
+        val end = (paddingValue["end"] as? Number)?.toFloat()
+        val bottom = (paddingValue["bottom"] as? Number)?.toFloat()
+        if (start != null || top != null || end != null || bottom != null) {
+            modifier = modifier.padding(
+                start = (start ?: 0f).dp,
+                top = (top ?: 0f).dp,
+                end = (end ?: 0f).dp,
+                bottom = (bottom ?: 0f).dp
+            )
+        } else if (horizontal != null || vertical != null) {
             modifier = modifier.padding(
                 horizontal = (horizontal ?: 0f).dp,
                 vertical = (vertical ?: 0f).dp
@@ -1617,9 +1730,20 @@ internal fun applyCommonModifier(
         if (allPadding != null) {
             modifier = modifier.padding(allPadding.dp)
         } else {
+            val start = props.floatOrNull("paddingStart")
+            val top = props.floatOrNull("paddingTop")
+            val end = props.floatOrNull("paddingEnd")
+            val bottom = props.floatOrNull("paddingBottom")
             val horizontal = props.floatOrNull("paddingHorizontal")
             val vertical = props.floatOrNull("paddingVertical")
-            if (horizontal != null || vertical != null) {
+            if (start != null || top != null || end != null || bottom != null) {
+                modifier = modifier.padding(
+                    start = (start ?: 0f).dp,
+                    top = (top ?: 0f).dp,
+                    end = (end ?: 0f).dp,
+                    bottom = (bottom ?: 0f).dp
+                )
+            } else if (horizontal != null || vertical != null) {
                 modifier = modifier.padding(
                     horizontal = (horizontal ?: 0f).dp,
                     vertical = (vertical ?: 0f).dp
@@ -1638,6 +1762,24 @@ internal fun applyCommonModifier(
             } else {
                 modifier = modifier.background(brush)
             }
+        }
+    } else {
+        val backgroundColor =
+            resolveColorValue(
+                props["backgroundColor"]
+                    ?: props["background"]
+                    ?: props["containerColor"]
+            )
+        if (backgroundColor != null) {
+            val shape = shapeFromValue(props["backgroundShape"]) ?: shapeFromValue(props["shape"])
+            val alpha = props.floatOrNull("backgroundAlpha") ?: props.floatOrNull("alpha")
+            val resolvedColor = if (alpha != null) backgroundColor.copy(alpha = alpha) else backgroundColor
+            modifier =
+                if (shape != null) {
+                    modifier.background(resolvedColor, shape = shape)
+                } else {
+                    modifier.background(resolvedColor)
+                }
         }
     }
 
@@ -2056,6 +2198,23 @@ internal fun Map<String, Any?>.imageModelOrNull(): Any? {
     }
 }
 
+internal fun Map<String, Any?>.webViewMixedContentMode(key: String): Int {
+    return when (normalizeToken(string(key))) {
+        "neverallow" -> WebSettings.MIXED_CONTENT_NEVER_ALLOW
+        "compatibilitymode" -> WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+        else -> WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+    }
+}
+
+internal fun Map<String, Any?>.webViewCacheMode(key: String): Int {
+    return when (normalizeToken(string(key))) {
+        "nocache" -> WebSettings.LOAD_NO_CACHE
+        "cacheelsenetwork" -> WebSettings.LOAD_CACHE_ELSE_NETWORK
+        "cacheonly" -> WebSettings.LOAD_CACHE_ONLY
+        else -> WebSettings.LOAD_DEFAULT
+    }
+}
+
 internal fun Map<String, Any?>.horizontalArrangement(key: String, spacing: Dp): Arrangement.Horizontal {
     val token = normalizeToken(string(key))
     return when (token) {
@@ -2091,6 +2250,69 @@ internal fun Map<String, Any?>.fontWeightOrNull(key: String): FontWeight? {
             ?: fontWeightGetterByToken[if (token == "regular") "normal" else token]
             ?: fontWeightGetterByToken[if (token == "heavy") "black" else token]
     return getter?.invoke(FontWeight.Companion) as? FontWeight
+}
+
+@Composable
+internal fun resolveComposeDslFontFamily(raw: String?): androidx.compose.ui.text.font.FontFamily? {
+    val normalized = raw?.trim().orEmpty()
+    if (normalized.isBlank()) {
+        return null
+    }
+    return when (normalizeToken(normalized)) {
+        "default" -> androidx.compose.ui.text.font.FontFamily.Default
+        "serif" -> getSystemFontFamily("serif")
+        "sansserif", "sans", "sans-serif" -> getSystemFontFamily("sans-serif")
+        "monospace", "mono" -> getSystemFontFamily("monospace")
+        "cursive" -> getSystemFontFamily("cursive")
+        else -> loadCustomFontFamily(LocalContext.current, normalized)
+    }
+}
+
+@Composable
+internal fun Map<String, Any?>.fontFamilyOrNull(key: String): androidx.compose.ui.text.font.FontFamily? {
+    return resolveComposeDslFontFamily(stringOrNull(key))
+}
+
+@Composable
+internal fun Map<String, Any?>.resolvedTextStyle(
+    key: String,
+    includeColor: Boolean = false
+): androidx.compose.ui.text.TextStyle {
+    var nextStyle = textStyle(key)
+    fontWeightOrNull("fontWeight")?.let { fontWeight ->
+        nextStyle = nextStyle.copy(fontWeight = fontWeight)
+    }
+    floatOrNull("fontSize")?.let { fontSize ->
+        nextStyle = nextStyle.copy(fontSize = fontSize.sp)
+    }
+    fontFamilyOrNull("fontFamily")?.let { fontFamily ->
+        nextStyle = nextStyle.copy(fontFamily = fontFamily)
+    }
+    if (includeColor) {
+        colorOrNull("color")?.let { color ->
+            nextStyle = nextStyle.copy(color = color)
+        }
+    }
+    return nextStyle
+}
+
+@Composable
+internal fun composeDslTextFieldStyleFromValue(value: Any?): androidx.compose.ui.text.TextStyle? {
+    val map = value as? Map<*, *> ?: return null
+    val fontSize = (map["fontSize"] as? Number)?.toFloat() ?: 14f
+    val fontWeight =
+        map["fontWeight"]?.toString()?.let { token ->
+            mapOf<String, Any?>("fontWeight" to token).fontWeightOrNull("fontWeight")
+        } ?: FontWeight.SemiBold
+    val color =
+        resolveColorValue(map["color"]) ?: MaterialTheme.colorScheme.primary
+    val fontFamily = resolveComposeDslFontFamily(map["fontFamily"]?.toString())
+    return androidx.compose.ui.text.TextStyle(
+        color = color,
+        fontSize = fontSize.sp,
+        fontWeight = fontWeight,
+        fontFamily = fontFamily
+    )
 }
 
 @Composable
