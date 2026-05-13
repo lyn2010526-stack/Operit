@@ -1,6 +1,8 @@
 import {
   CHAT_VIEW_HOOK_ID,
   MENU_HOOK_ID,
+  PLANASK_XML_RENDER_HOOK_ID,
+  PLANASK_XML_TAG,
   PROMPT_ESTIMATE_FINALIZE_HOOK_ID,
   PROMPT_FINALIZE_HOOK_ID,
   PROMPT_HOOK_ID,
@@ -27,6 +29,7 @@ import {
   logPlanModeDebug,
   resolveChatWorkspace,
 } from "../shared/plan_mode_workspace.js";
+import { onPlanaskXmlRender } from "./planask-xml-render-plugin.js";
 import { onPlantodoXmlRender } from "./plantodo-xml-render-plugin.js";
 
 const PLAN_MODE_BLOCKED_TOOL_NAMES = new Set([
@@ -386,6 +389,11 @@ export function registerToolPkg(): boolean {
     id: XML_RENDER_HOOK_ID,
     tag: XML_TAG,
     function: onPlantodoXmlRender,
+  });
+  ToolPkg.registerXmlRenderPlugin({
+    id: PLANASK_XML_RENDER_HOOK_ID,
+    tag: PLANASK_XML_TAG,
+    function: onPlanaskXmlRender,
   });
   return true;
 }

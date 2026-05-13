@@ -1215,12 +1215,14 @@ fun ToolPkgComposeDslToolScreen(
 fun RenderToolPkgComposeDslNode(
     node: ToolPkgComposeDslNode,
     modifier: Modifier = Modifier,
-    onAction: (String, Any?) -> Unit = { _, _ -> }
+    onAction: (String, Any?) -> Unit = { _, _ -> },
+    onTextInputAction: (String, String) -> Unit = { _, _ -> },
+    onFlushTextInput: () -> Unit = { }
 ) {
     CompositionLocalProvider(
         LocalComposeDslActionHandler provides onAction,
-        LocalComposeDslTextInputActionHandler provides { _, _ -> },
-        LocalComposeDslFlushTextInputHandler provides { },
+        LocalComposeDslTextInputActionHandler provides onTextInputAction,
+        LocalComposeDslFlushTextInputHandler provides onFlushTextInput,
         LocalComposeDslSuspendingActionHandler provides { actionId, payload ->
             onAction(actionId, payload)
         },

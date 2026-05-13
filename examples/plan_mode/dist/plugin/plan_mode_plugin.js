@@ -14,6 +14,7 @@ const plan_mode_plan_file_js_1 = require("../shared/plan_mode_plan_file.js");
 const plan_mode_prompt_js_1 = require("../shared/plan_mode_prompt.js");
 const plan_mode_state_js_1 = require("../shared/plan_mode_state.js");
 const plan_mode_workspace_js_1 = require("../shared/plan_mode_workspace.js");
+const planask_xml_render_plugin_js_1 = require("./planask-xml-render-plugin.js");
 const plantodo_xml_render_plugin_js_1 = require("./plantodo-xml-render-plugin.js");
 const PLAN_MODE_BLOCKED_TOOL_NAMES = new Set([
     "apply_file",
@@ -323,6 +324,11 @@ function registerToolPkg() {
         id: plan_mode_constants_js_1.XML_RENDER_HOOK_ID,
         tag: plan_mode_constants_js_1.XML_TAG,
         function: plantodo_xml_render_plugin_js_1.onPlantodoXmlRender,
+    });
+    ToolPkg.registerXmlRenderPlugin({
+        id: plan_mode_constants_js_1.PLANASK_XML_RENDER_HOOK_ID,
+        tag: plan_mode_constants_js_1.PLANASK_XML_TAG,
+        function: planask_xml_render_plugin_js_1.onPlanaskXmlRender,
     });
     return true;
 }

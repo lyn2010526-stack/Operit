@@ -8,6 +8,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,10 +31,12 @@ import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.stream.Stream
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import android.content.Context
 
@@ -215,12 +218,27 @@ object XmlRenderPluginRegistry {
         val jsEngine = remember(packageManager, executionContextKey) {
             packageManager.getToolPkgExecutionEngine(executionContextKey)
         }
+        val scope = rememberCoroutineScope()
 
         var renderResult by remember(renderInstanceKey, result.containerPackageName, result.screenPath) {
             mutableStateOf<ToolPkgComposeDslRenderResult?>(null)
         }
         var errorMessage by remember(renderInstanceKey, result.containerPackageName, result.screenPath) {
             mutableStateOf<String?>(null)
+        }
+        var nextTextInputSyncTicket by remember(
+            renderInstanceKey,
+            result.containerPackageName,
+            result.screenPath
+        ) {
+            mutableStateOf(1L)
+        }
+        val pendingTextInputSyncs = remember(
+            renderInstanceKey,
+            result.containerPackageName,
+            result.screenPath
+        ) {
+            linkedMapOf<Long, CompletableDeferred<Unit>>()
         }
         val initialXmlContent = remember(result.state) {
             result.state["xmlContent"]?.toString().orEmpty()
@@ -281,6 +299,52 @@ object XmlRenderPluginRegistry {
                 "moduleSpec" to buildModuleSpec(screenPath)
             )
 
+        fun hasPendingTextInputSyncs(): Boolean = pendingTextInputSyncs.isNotEmpty()
+
+        suspend fun awaitPendingTextInputSyncs() {
+            val pendingCompletions = pendingTextInputSyncs.values.toList()
+            pendingCompletions.forEach { completion ->
+                runCatching { completion.await() }
+            }
+        }
+
+        fun requestComposeDslTreeRerender(source: String) {
+            val screenPath = result.screenPath.trim()
+            if (screenPath.isBlank()) {
+                return
+            }
+            scope.launch {
+                val rawResult =
+                    withContext(Dispatchers.IO) {
+                        jsEngine.rerenderComposeDslTree(
+                            runtimeOptions = buildActionRuntimeOptions(screenPath)
+                        )
+                    }
+                val parsed = ToolPkgComposeDslParser.parseRenderResult(rawResult)
+                if (parsed == null) {
+                    val rawText = rawResult?.toString()?.trim().orEmpty()
+                    AppLogger.e(
+                        TAG,
+                        "xml compose_dsl text rerender failed: source=$source, raw=${rawText.ifBlank { "<empty>" }}"
+                    )
+                    return@launch
+                }
+                renderResult = parsed
+                errorMessage = null
+                AppLogger.d(
+                    TAG,
+                    "xml compose_dsl text rerender success: source=$source, stateKeys=${parsed.state.keys}"
+                )
+            }
+        }
+
+        fun flushTextInputSyncsAndRerender() {
+            scope.launch {
+                awaitPendingTextInputSyncs()
+                requestComposeDslTreeRerender("flush")
+            }
+        }
+
         fun dispatchAction(actionId: String, payload: Any?) {
             val normalizedActionId = actionId.trim()
             if (normalizedActionId.isBlank()) {
@@ -309,6 +373,57 @@ object XmlRenderPluginRegistry {
                 onError = { error ->
                     errorMessage = "compose_dsl runtime error: $error"
                     AppLogger.e(TAG, "compose_dsl action failed: $error")
+                }
+            )
+        }
+
+        fun dispatchTextInputAction(actionId: String, text: String) {
+            val normalizedActionId = actionId.trim()
+            if (normalizedActionId.isBlank()) {
+                return
+            }
+            val screenPath = result.screenPath.trim()
+            if (screenPath.isBlank()) {
+                return
+            }
+            val syncTicket = nextTextInputSyncTicket
+            nextTextInputSyncTicket += 1
+            val completion = CompletableDeferred<Unit>()
+            pendingTextInputSyncs[syncTicket] = completion
+            AppLogger.d(
+                TAG,
+                "xml compose_dsl text input dispatch: actionId=$normalizedActionId, textLength=${text.length}, syncTicket=$syncTicket"
+            )
+            jsEngine.dispatchComposeDslActionAsync(
+                actionId = normalizedActionId,
+                payload =
+                    mapOf(
+                        "__composeTextFieldPayload" to true,
+                        "__no_render" to true,
+                        "value" to text
+                    ),
+                runtimeOptions = buildActionRuntimeOptions(screenPath),
+                onIntermediateResult = {},
+                onFinalResult = {},
+                onComplete = {
+                    pendingTextInputSyncs.remove(syncTicket)
+                    if (!completion.isCompleted) {
+                        completion.complete(Unit)
+                    }
+                    if (!hasPendingTextInputSyncs()) {
+                        requestComposeDslTreeRerender("text_input_complete")
+                    }
+                },
+                onError = { error ->
+                    errorMessage = "compose_dsl runtime error: $error"
+                    AppLogger.e(
+                        TAG,
+                        "xml compose_dsl text input failed: actionId=$normalizedActionId, syncTicket=$syncTicket, error=$error"
+                    )
+                    pendingTextInputSyncs.remove(syncTicket)
+                    if (!completion.isCompleted) {
+                        completion.complete(Unit)
+                    }
                 }
             )
         }
@@ -387,7 +502,9 @@ object XmlRenderPluginRegistry {
                         RenderToolPkgComposeDslNode(
                             node = renderResult!!.tree,
                             modifier = Modifier.align(Alignment.TopStart),
-                            onAction = ::dispatchAction
+                            onAction = ::dispatchAction,
+                            onTextInputAction = ::dispatchTextInputAction,
+                            onFlushTextInput = ::flushTextInputSyncsAndRerender
                         )
                     }
                 }
