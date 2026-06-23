@@ -248,7 +248,7 @@ fun ContextSummarySettingsScreen(onBackPressed: () -> Unit) {
                 // 自定义总结规则自动保存
                 ContextSummaryCustomRulesAutoSaveEffect(
                     currentConfig = currentConfig,
-                    summaryCustomRulesInput = summaryCustomRulesInput,
+                    summaryCustomRulesInputProvider = { summaryCustomRulesInput },
                     modelConfigManager = modelConfigManager,
                     errorSaveFailed = errorSaveFailed,
                     onSummaryErrorChange = { summaryError = it }
@@ -489,7 +489,7 @@ private fun HistoryRetentionAutoSaveEffects(
 @Composable
 private fun ContextSummaryCustomRulesAutoSaveEffect(
     currentConfig: ModelConfigData?,
-    summaryCustomRulesInput: String,
+    summaryCustomRulesInputProvider: () -> String,
     modelConfigManager: ModelConfigManager,
     errorSaveFailed: String,
     onSummaryErrorChange: (String?) -> Unit
@@ -498,7 +498,7 @@ private fun ContextSummaryCustomRulesAutoSaveEffect(
 
     LaunchedEffect(currentConfig?.id) {
         val configId = currentConfig?.id ?: return@LaunchedEffect
-        snapshotFlow { summaryCustomRulesInput }
+        snapshotFlow { summaryCustomRulesInputProvider() }
             .drop(1)
             .debounce(700)
             .distinctUntilChanged()
