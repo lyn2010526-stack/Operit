@@ -12,6 +12,7 @@ import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.layout.Arrangement
@@ -604,6 +605,7 @@ private fun MessageItem(
     var showDeleteMessageConfirmDialog by remember { mutableStateOf(false) }
     var copyPreviewText by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
+    val messageInteractionSource = remember { MutableInteractionSource() }
 
     // 只有用户和AI的消息才能被操作
     val isActionable = message.sender == "user" || message.sender == "ai"
@@ -622,6 +624,8 @@ private fun MessageItem(
                 } else Modifier
             )
             .combinedClickable(
+                interactionSource = messageInteractionSource,
+                indication = null,
                 onClick = {
                     if (isMultiSelectMode && isActionable) {
                         onToggleSelection?.invoke()
