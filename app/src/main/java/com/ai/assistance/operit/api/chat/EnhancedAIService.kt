@@ -508,6 +508,11 @@ class EnhancedAIService private constructor(private val context: Context) {
     private var currentRequestOutputTokenCount = 0
     private var currentRequestCachedInputTokenCount = 0
 
+    private fun saturatedTokenSum(vararg values: Int): Int {
+        val total = values.fold(0L) { acc, value -> acc + value.toLong().coerceAtLeast(0L) }
+        return total.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+    }
+
     // Callbacks
     private var currentResponseCallback: ((content: String, thinking: String?) -> Unit)? = null
     private var currentCompleteCallback: (() -> Unit)? = null
@@ -1197,9 +1202,10 @@ class EnhancedAIService private constructor(private val context: Context) {
                     val inputTokens = serviceForFunction.inputTokenCount
                     val cachedInputTokens = serviceForFunction.cachedInputTokenCount
                     val outputTokens = serviceForFunction.outputTokenCount
-                    accumulatedInputTokenCount += inputTokens
-                    accumulatedOutputTokenCount += outputTokens
-                    accumulatedCachedInputTokenCount += cachedInputTokens
+                    accumulatedInputTokenCount = saturatedTokenSum(accumulatedInputTokenCount, inputTokens)
+                    accumulatedOutputTokenCount = saturatedTokenSum(accumulatedOutputTokenCount, outputTokens)
+                    accumulatedCachedInputTokenCount =
+                        saturatedTokenSum(accumulatedCachedInputTokenCount, cachedInputTokens)
                     currentRequestInputTokenCount = 0
                     currentRequestOutputTokenCount = 0
                     currentRequestCachedInputTokenCount = 0
@@ -2412,9 +2418,10 @@ class EnhancedAIService private constructor(private val context: Context) {
                 val inputTokens = serviceForFunction.inputTokenCount
                 val cachedInputTokens = serviceForFunction.cachedInputTokenCount
                 val outputTokens = serviceForFunction.outputTokenCount
-                accumulatedInputTokenCount += inputTokens
-                accumulatedOutputTokenCount += outputTokens
-                accumulatedCachedInputTokenCount += cachedInputTokens
+                accumulatedInputTokenCount = saturatedTokenSum(accumulatedInputTokenCount, inputTokens)
+                accumulatedOutputTokenCount = saturatedTokenSum(accumulatedOutputTokenCount, outputTokens)
+                accumulatedCachedInputTokenCount =
+                    saturatedTokenSum(accumulatedCachedInputTokenCount, cachedInputTokens)
                 currentRequestInputTokenCount = 0
                 currentRequestOutputTokenCount = 0
                 currentRequestCachedInputTokenCount = 0
@@ -2504,10 +2511,10 @@ class EnhancedAIService private constructor(private val context: Context) {
 
     fun captureCurrentTurnTokenSnapshot(): TurnTokenSnapshot {
         return TurnTokenSnapshot(
-            inputTokens = (accumulatedInputTokenCount + currentRequestInputTokenCount).coerceAtLeast(0),
-            outputTokens = (accumulatedOutputTokenCount + currentRequestOutputTokenCount).coerceAtLeast(0),
+            inputTokens = saturatedTokenSum(accumulatedInputTokenCount, currentRequestInputTokenCount),
+            outputTokens = saturatedTokenSum(accumulatedOutputTokenCount, currentRequestOutputTokenCount),
             cachedInputTokens =
-                (accumulatedCachedInputTokenCount + currentRequestCachedInputTokenCount).coerceAtLeast(0)
+                saturatedTokenSum(accumulatedCachedInputTokenCount, currentRequestCachedInputTokenCount)
         )
     }
 

@@ -22,28 +22,28 @@ class TokenStatisticsDelegate(
     }
 
     // --- UI State Flows ---
-    private val _cumulativeInputTokens = MutableStateFlow(0)
-    val cumulativeInputTokensFlow: StateFlow<Int> = _cumulativeInputTokens.asStateFlow()
+    private val _cumulativeInputTokens = MutableStateFlow(0L)
+    val cumulativeInputTokensFlow: StateFlow<Long> = _cumulativeInputTokens.asStateFlow()
 
-    private val _cumulativeOutputTokens = MutableStateFlow(0)
-    val cumulativeOutputTokensFlow: StateFlow<Int> = _cumulativeOutputTokens.asStateFlow()
+    private val _cumulativeOutputTokens = MutableStateFlow(0L)
+    val cumulativeOutputTokensFlow: StateFlow<Long> = _cumulativeOutputTokens.asStateFlow()
 
-    private val _currentWindowSize = MutableStateFlow(0)
-    val currentWindowSizeFlow: StateFlow<Int> = _currentWindowSize.asStateFlow()
+    private val _currentWindowSize = MutableStateFlow(0L)
+    val currentWindowSizeFlow: StateFlow<Long> = _currentWindowSize.asStateFlow()
 
     private val _perRequestTokenCount = MutableStateFlow<Pair<Int, Int>?>(null)
     val perRequestTokenCountFlow: StateFlow<Pair<Int, Int>?> = _perRequestTokenCount.asStateFlow()
 
     // --- Internal State ---
-    private var lastCurrentWindowSize = 0
+    private var lastCurrentWindowSize = 0L
     private var tokenCollectorJob: Job? = null
 
     private val tokenCollectorJobsByChatKey = ConcurrentHashMap<String, Job>()
     private val boundServicesByChatKey = ConcurrentHashMap<String, EnhancedAIService>()
 
-    private val cumulativeInputTokensByChatKey = ConcurrentHashMap<String, Int>()
-    private val cumulativeOutputTokensByChatKey = ConcurrentHashMap<String, Int>()
-    private val lastWindowSizeByChatKey = ConcurrentHashMap<String, Int>()
+    private val cumulativeInputTokensByChatKey = ConcurrentHashMap<String, Long>()
+    private val cumulativeOutputTokensByChatKey = ConcurrentHashMap<String, Long>()
+    private val lastWindowSizeByChatKey = ConcurrentHashMap<String, Long>()
     private val perRequestTokenCountByChatKey =
         ConcurrentHashMap<String, Pair<Int, Int>?>()
 
@@ -55,9 +55,9 @@ class TokenStatisticsDelegate(
 
     private fun refreshActiveFromCache() {
         val key = chatKey(activeChatId)
-        val input = cumulativeInputTokensByChatKey[key] ?: 0
-        val output = cumulativeOutputTokensByChatKey[key] ?: 0
-        val window = lastWindowSizeByChatKey[key] ?: 0
+        val input = cumulativeInputTokensByChatKey[key] ?: 0L
+        val output = cumulativeOutputTokensByChatKey[key] ?: 0L
+        val window = lastWindowSizeByChatKey[key] ?: 0L
         val perRequest = perRequestTokenCountByChatKey[key]
 
         _cumulativeInputTokens.value = input
@@ -89,12 +89,13 @@ class TokenStatisticsDelegate(
         if (windowSize == null) {
             return
         }
+        val safeWindowSize = windowSize.toLong().coerceAtLeast(0L)
 
-        lastWindowSizeByChatKey[key] = windowSize
+        lastWindowSizeByChatKey[key] = safeWindowSize
 
         if (isActiveKey(key)) {
-            _currentWindowSize.value = windowSize
-            lastCurrentWindowSize = windowSize
+            _currentWindowSize.value = safeWindowSize
+            lastCurrentWindowSize = safeWindowSize
         }
     }
 
@@ -158,11 +159,11 @@ class TokenStatisticsDelegate(
 
     /** 重置token统计 */
     fun resetTokenStatistics() {
-        _cumulativeInputTokens.value = 0
-        _cumulativeOutputTokens.value = 0
-        _currentWindowSize.value = 0
+        _cumulativeInputTokens.value = 0L
+        _cumulativeOutputTokens.value = 0L
+        _currentWindowSize.value = 0L
         _perRequestTokenCount.value = null
-        lastCurrentWindowSize = 0
+        lastCurrentWindowSize = 0L
 
         cumulativeInputTokensByChatKey.clear()
         cumulativeOutputTokensByChatKey.clear()
@@ -185,12 +186,12 @@ class TokenStatisticsDelegate(
         service?.let {
             try {
                 // 从AI服务获取最新的token统计
-                val currentInputTokens = it.getCurrentInputTokenCount()
-                val currentOutputTokens = it.getCurrentOutputTokenCount()
+                val currentInputTokens = it.getCurrentInputTokenCount().toLong().coerceAtLeast(0L)
+                val currentOutputTokens = it.getCurrentOutputTokenCount().toLong().coerceAtLeast(0L)
 
                 // 更新累计token数
-                val newInput = (cumulativeInputTokensByChatKey[key] ?: 0) + currentInputTokens
-                val newOutput = (cumulativeOutputTokensByChatKey[key] ?: 0) + currentOutputTokens
+                val newInput = (cumulativeInputTokensByChatKey[key] ?: 0L) + currentInputTokens
+                val newOutput = (cumulativeOutputTokensByChatKey[key] ?: 0L) + currentOutputTokens
                 cumulativeInputTokensByChatKey[key] = newInput
                 cumulativeOutputTokensByChatKey[key] = newOutput
 
@@ -211,36 +212,43 @@ class TokenStatisticsDelegate(
     }
 
     /** 设置累计token计数 */
-    fun setTokenCounts(chatId: String?, inputTokens: Int, outputTokens: Int, windowSize: Int) {
+    fun setTokenCounts(chatId: String?, inputTokens: Long, outputTokens: Long, windowSize: Long) {
         val key = chatKey(chatId)
-        cumulativeInputTokensByChatKey[key] = inputTokens
-        cumulativeOutputTokensByChatKey[key] = outputTokens
-        lastWindowSizeByChatKey[key] = windowSize
+        val safeInputTokens = inputTokens.coerceAtLeast(0L)
+        val safeOutputTokens = outputTokens.coerceAtLeast(0L)
+        val safeWindowSize = windowSize.coerceAtLeast(0L)
+        cumulativeInputTokensByChatKey[key] = safeInputTokens
+        cumulativeOutputTokensByChatKey[key] = safeOutputTokens
+        lastWindowSizeByChatKey[key] = safeWindowSize
 
         if (isActiveKey(key)) {
-            _cumulativeInputTokens.value = inputTokens
-            _cumulativeOutputTokens.value = outputTokens
-            _currentWindowSize.value = windowSize
-            lastCurrentWindowSize = windowSize
+            _cumulativeInputTokens.value = safeInputTokens
+            _cumulativeOutputTokens.value = safeOutputTokens
+            _currentWindowSize.value = safeWindowSize
+            lastCurrentWindowSize = safeWindowSize
         }
     }
 
-    fun setTokenCounts(inputTokens: Int, outputTokens: Int, windowSize: Int) {
+    fun setTokenCounts(chatId: String?, inputTokens: Int, outputTokens: Int, windowSize: Int) {
+        setTokenCounts(chatId, inputTokens.toLong(), outputTokens.toLong(), windowSize.toLong())
+    }
+
+    fun setTokenCounts(inputTokens: Long, outputTokens: Long, windowSize: Long) {
         setTokenCounts(activeChatId, inputTokens, outputTokens, windowSize)
     }
 
     /** 获取当前累计token计数 */
-    fun getCumulativeTokenCounts(chatId: String? = activeChatId): Pair<Int, Int> {
+    fun getCumulativeTokenCounts(chatId: String? = activeChatId): Pair<Long, Long> {
         val key = chatKey(chatId)
         return Pair(
-            cumulativeInputTokensByChatKey[key] ?: 0,
-            cumulativeOutputTokensByChatKey[key] ?: 0
+            cumulativeInputTokensByChatKey[key] ?: 0L,
+            cumulativeOutputTokensByChatKey[key] ?: 0L
         )
     }
 
     /** 获取最近一次的实际上下文窗口大小 */
-    fun getLastCurrentWindowSize(chatId: String? = activeChatId): Int {
+    fun getLastCurrentWindowSize(chatId: String? = activeChatId): Long {
         val key = chatKey(chatId)
-        return lastWindowSizeByChatKey[key] ?: 0
+        return lastWindowSizeByChatKey[key] ?: 0L
     }
 }

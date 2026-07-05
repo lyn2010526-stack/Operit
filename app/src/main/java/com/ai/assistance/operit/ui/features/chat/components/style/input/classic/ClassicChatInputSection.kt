@@ -168,12 +168,13 @@ fun ClassicChatInputSection(
     // Token limit calculation
     val currentWindowSize by actualViewModel.currentWindowSize.collectAsState()
     val maxWindowSizeInK by actualViewModel.maxWindowSizeInK.collectAsState()
-    val maxTokens = (maxWindowSizeInK * 1024).toInt()
+    val maxTokens = (maxWindowSizeInK * 1024).toLong().coerceAtLeast(0L)
     val userMessageTokens = remember(userMessage.text) { ChatUtils.estimateTokenCount(userMessage.text) }
+    val projectedTokens = userMessageTokens.toLong() + currentWindowSize
 
     val isOverTokenLimit =
         if (maxTokens > 0) {
-            (userMessageTokens + currentWindowSize) > maxTokens
+            projectedTokens > maxTokens
         } else {
             false
         }
@@ -734,7 +735,7 @@ fun ClassicChatInputSection(
             if (isOverTokenLimit && canSendMessage && !showQueueAction) {
                 Text(
                     text =
-                    context.getString(R.string.token_limit_exceeded_message, userMessageTokens + currentWindowSize, maxTokens),
+                    context.getString(R.string.token_limit_exceeded_message, projectedTokens, maxTokens),
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.labelSmall,
                     modifier =

@@ -72,7 +72,11 @@ class GeminiProvider(
     /**
      * 由客户端错误（如4xx状态码）触发的API异常，是否重试由统一策略决定
      */
-    class NonRetriableException(message: String, cause: Throwable? = null) : IOException(message, cause)
+    class NonRetriableException(
+        message: String,
+        override val statusCode: Int,
+        cause: Throwable? = null
+    ) : IOException(message, cause), HttpStatusCodeException
 
     // Token计数
     private val tokenCacheManager = TokenCacheManager()
@@ -1012,7 +1016,9 @@ class GeminiProvider(
 
         val retryDelayMs = LlmRetryPolicy.nextDelayMs(newRetryCount)
         AppLogger.w(TAG, "$errorText，将在 ${retryDelayMs}ms 后进行第 $newRetryCount 次重试...", exception)
-        onNonFatalError(buildRetryMessage(errorText, newRetryCount))
+        if (!shouldSuppressKeyPoolRateLimitNotice(apiKeyProvider, exception, TAG)) {
+            onNonFatalError(buildRetryMessage(errorText, newRetryCount))
+        }
         delay(retryDelayMs)
         return newRetryCount
     }
@@ -1120,7 +1126,10 @@ class GeminiProvider(
                             logError("API请求失败: ${response.code}, $errorBody")
                             // 4xx错误仍保留单独的异常类型，具体是否重试由统一策略决定
                             if (response.code in 400..499) {
-                                throw NonRetriableException(context.getString(R.string.gemini_error_api_request_failed, response.code, errorBody))
+                                throw NonRetriableException(
+                                    context.getString(R.string.gemini_error_api_request_failed, response.code, errorBody),
+                                    statusCode = response.code
+                                )
                             }
                             // 对于5xx等服务端错误，允许重试
                             throw IOException(context.getString(R.string.gemini_error_api_request_failed, response.code, errorBody))

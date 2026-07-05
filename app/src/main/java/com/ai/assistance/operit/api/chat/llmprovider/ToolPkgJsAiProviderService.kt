@@ -434,21 +434,50 @@ internal class ToolPkgJsAiProviderService(
 
     private fun parseTokenCount(decoded: ProviderHookValue): Int {
         return when (decoded) {
-            is ProviderHookValue.NumberValue -> decoded.value.toInt()
+            is ProviderHookValue.NumberValue -> decoded.value.toTokenCountInt()
             is ProviderHookValue.TextValue ->
-                decoded.value.trim().toIntOrNull()
+                decoded.value.trim().toBigDecimalOrNull()?.toTokenCountInt()
                     ?: throw IllegalStateException("Invalid token count result: ${decoded.value}")
             is ProviderHookValue.ObjectValue -> {
-                decoded.value.optInt("tokens", Int.MIN_VALUE)
-                    .takeIf { it != Int.MIN_VALUE }
-                    ?: decoded.value.optInt("inputTokens", Int.MIN_VALUE)
-                        .takeIf { it != Int.MIN_VALUE }
-                    ?: decoded.value.optInt("count", Int.MIN_VALUE)
-                        .takeIf { it != Int.MIN_VALUE }
+                decoded.value.optTokenCount("tokens", "inputTokens", "count")
                     ?: throw IllegalStateException("Invalid token count result")
             }
             else -> throw IllegalStateException("Invalid token count result")
         }
+    }
+
+    private fun Number.toTokenCountInt(): Int {
+        return when (this) {
+            is java.math.BigDecimal -> toTokenCountInt()
+            is java.math.BigInteger ->
+                coerceIn(java.math.BigInteger.ZERO, java.math.BigInteger.valueOf(Int.MAX_VALUE.toLong()))
+                    .toLong()
+                    .toTokenCountInt()
+            else -> toLong().toTokenCountInt()
+        }
+    }
+
+    private fun java.math.BigDecimal.toTokenCountInt(): Int {
+        return coerceIn(java.math.BigDecimal.ZERO, java.math.BigDecimal.valueOf(Int.MAX_VALUE.toLong()))
+            .toLong()
+            .toTokenCountInt()
+    }
+
+    private fun Long.toTokenCountInt(): Int {
+        return coerceIn(0L, Int.MAX_VALUE.toLong()).toInt()
+    }
+
+    private fun JSONObject.optTokenCount(vararg keys: String): Int? {
+        for (key in keys) {
+            if (!has(key) || isNull(key)) continue
+            val parsed = when (val raw = opt(key)) {
+                is Number -> raw.toTokenCountInt()
+                is String -> raw.trim().toBigDecimalOrNull()?.toTokenCountInt()
+                else -> null
+            }
+            if (parsed != null) return parsed
+        }
+        return null
     }
 
     private fun ensureNoFatalError(decoded: ProviderHookValue) {
@@ -488,15 +517,9 @@ internal class ToolPkgJsAiProviderService(
     private fun extractUsageFromJson(json: JSONObject): TokenUsage? {
         val usageObject = json.optJSONObject("usage")
         val source = usageObject ?: json
-        val input = source.optInt("input", Int.MIN_VALUE)
-            .takeIf { it != Int.MIN_VALUE }
-            ?: source.optInt("inputTokens", Int.MIN_VALUE).takeIf { it != Int.MIN_VALUE }
-        val cachedInput = source.optInt("cachedInput", Int.MIN_VALUE)
-            .takeIf { it != Int.MIN_VALUE }
-            ?: source.optInt("cachedInputTokens", Int.MIN_VALUE).takeIf { it != Int.MIN_VALUE }
-        val output = source.optInt("output", Int.MIN_VALUE)
-            .takeIf { it != Int.MIN_VALUE }
-            ?: source.optInt("outputTokens", Int.MIN_VALUE).takeIf { it != Int.MIN_VALUE }
+        val input = source.optTokenCount("input", "inputTokens")
+        val cachedInput = source.optTokenCount("cachedInput", "cachedInputTokens")
+        val output = source.optTokenCount("output", "outputTokens")
         if (input == null && cachedInput == null && output == null) {
             return null
         }
@@ -508,9 +531,9 @@ internal class ToolPkgJsAiProviderService(
     }
 
     private fun applyUsage(usage: TokenUsage) {
-        currentInputTokenCount = usage.input
-        currentCachedInputTokenCount = usage.cachedInput
-        currentOutputTokenCount = usage.output
+        currentInputTokenCount = usage.input.coerceAtLeast(0)
+        currentCachedInputTokenCount = usage.cachedInput.coerceAtLeast(0)
+        currentOutputTokenCount = usage.output.coerceAtLeast(0)
     }
 
     private fun extractMessageChunks(decoded: ProviderHookValue): List<String> {

@@ -302,9 +302,9 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     }
 
     // 聊天统计相关
-    val currentWindowSize: StateFlow<Int> by lazy { tokenStatsDelegate.currentWindowSizeFlow }
-    val inputTokenCount: StateFlow<Int> by lazy { tokenStatsDelegate.cumulativeInputTokensFlow }
-    val outputTokenCount: StateFlow<Int> by lazy { tokenStatsDelegate.cumulativeOutputTokensFlow }
+    val currentWindowSize: StateFlow<Long> by lazy { tokenStatsDelegate.currentWindowSizeFlow }
+    val inputTokenCount: StateFlow<Long> by lazy { tokenStatsDelegate.cumulativeInputTokensFlow }
+    val outputTokenCount: StateFlow<Long> by lazy { tokenStatsDelegate.cumulativeOutputTokensFlow }
     val perRequestTokenCount: StateFlow<Pair<Int, Int>?> by lazy { tokenStatsDelegate.perRequestTokenCountFlow }
 
 
@@ -631,6 +631,12 @@ class ChatViewModel(private val context: Context) : ViewModel() {
 
     fun saveToolPromptVisibilityMap(visibilityMap: Map<String, Boolean>) {
         apiConfigDelegate.saveToolPromptVisibilityMap(visibilityMap)
+    }
+
+    val toolPromptOrder: StateFlow<List<String>> by lazy { apiConfigDelegate.toolPromptOrder }
+
+    fun saveToolPromptOrder(order: List<String>) {
+        apiConfigDelegate.saveToolPromptOrder(order)
     }
 
     fun toggleDisableStreamOutput() {

@@ -35,7 +35,7 @@ internal class WebChatInputSettingsBridge(
             baseContextLengthK = baseContextLengthK,
             maxContextLengthK = maxContextLengthK,
             activeContextLengthK = activeContextLengthK,
-            maxWindowTokens = (activeContextLengthK * 1024).toInt()
+            maxWindowTokens = (activeContextLengthK * 1024).toLong().coerceAtLeast(0L)
         )
     }
 

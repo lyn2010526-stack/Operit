@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.features.settings.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -31,11 +32,13 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.style.TextOverflow
 import java.text.DecimalFormat
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.core.tools.defaultTool.standard.CookiePrivacyManager
 import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.data.preferences.GitHubAuthPreferences
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.data.repository.ChatHistoryManager
 import com.ai.assistance.operit.ui.features.github.GitHubLoginWebViewDialog
+import com.ai.assistance.operit.util.AppLogger
 import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.Color
 
@@ -69,6 +72,7 @@ fun SettingsScreen(
         val githubAuth = remember { GitHubAuthPreferences.getInstance(context) }
         val scope = rememberCoroutineScope()
         var showGitHubLogin by remember { mutableStateOf(false) }
+        var showClearCookieConfirm by remember { mutableStateOf(false) }
 
         val isGitHubLoggedIn = githubAuth.isLoggedInFlow.collectAsState(initial = false).value
         val gitHubUser = githubAuth.userInfoFlow.collectAsState(initial = null).value
@@ -288,6 +292,20 @@ fun SettingsScreen(
                         )
                 }
 
+                // ======= 隐私与数据清理 =======
+                SettingsSection(
+                        title = stringResource(id = R.string.settings_privacy_data_cleanup),
+                        icon = Icons.Default.DeleteSweep,
+                        containerColor = cardContainerColor
+                ) {
+                        CompactSettingsItem(
+                                title = stringResource(id = R.string.settings_clear_cookies),
+                                subtitle = stringResource(id = R.string.settings_clear_cookies_subtitle),
+                                icon = Icons.Default.DeleteSweep,
+                                onClick = { showClearCookieConfirm = true }
+                        )
+                }
+
                 // ======= 外部调用 =======
                 SettingsSection(
                         title = stringResource(id = R.string.settings_section_external_calls),
@@ -304,6 +322,45 @@ fun SettingsScreen(
 
                 // 底部间距
                 Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        if (showClearCookieConfirm) {
+                AlertDialog(
+                        onDismissRequest = { showClearCookieConfirm = false },
+                        title = { Text(stringResource(R.string.clear_cookies_dialog_title)) },
+                        text = { Text(stringResource(R.string.clear_cookies_dialog_message)) },
+                        confirmButton = {
+                                TextButton(
+                                        onClick = {
+                                                showClearCookieConfirm = false
+                                                scope.launch {
+                                                        try {
+                                                                CookiePrivacyManager.clearAllCookies()
+                                                                Toast.makeText(
+                                                                        context,
+                                                                        context.getString(R.string.clear_cookies_success),
+                                                                        Toast.LENGTH_SHORT
+                                                                ).show()
+                                                        } catch (e: Exception) {
+                                                                AppLogger.e("SettingsScreen", "Failed to clear cookies", e)
+                                                                Toast.makeText(
+                                                                        context,
+                                                                        context.getString(R.string.clear_cookies_failed),
+                                                                        Toast.LENGTH_SHORT
+                                                                ).show()
+                                                        }
+                                                }
+                                        }
+                                ) {
+                                        Text(stringResource(R.string.clear_cookies_confirm))
+                                }
+                        },
+                        dismissButton = {
+                                TextButton(onClick = { showClearCookieConfirm = false }) {
+                                        Text(stringResource(android.R.string.cancel))
+                                }
+                        }
+                )
         }
 }
 
@@ -533,5 +590,4 @@ private fun CompactSlider(
                 }
         }
 }
-
 

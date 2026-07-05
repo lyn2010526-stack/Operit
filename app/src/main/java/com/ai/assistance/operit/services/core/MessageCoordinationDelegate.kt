@@ -261,7 +261,7 @@ class MessageCoordinationDelegate(
         chatHistoryDelegate.saveCurrentChat(
             inputTokens = inputTokens,
             outputTokens = outputTokens,
-            actualContextWindowSize = newWindowSize,
+            actualContextWindowSize = newWindowSize.toLong(),
             chatIdOverride = targetChatId
         )
         withContext(Dispatchers.Main) {
@@ -269,7 +269,7 @@ class MessageCoordinationDelegate(
                 targetChatId,
                 inputTokens,
                 outputTokens,
-                newWindowSize
+                newWindowSize.toLong()
             )
         }
         AppLogger.d(
@@ -409,7 +409,11 @@ class MessageCoordinationDelegate(
                 currentRoleName = currentRoleName,
                 enableThinking = apiConfigDelegate.enableThinkingMode.value,
                 enableMemoryAutoUpdate = apiConfigDelegate.enableMemoryAutoUpdate.value,
-                maxTokens = (chatContextSettings.effectiveContextLength * 1024).toInt(),
+                maxTokens =
+                    (chatContextSettings.effectiveContextLength * 1024)
+                        .toLong()
+                        .coerceIn(0L, Int.MAX_VALUE.toLong())
+                        .toInt(),
                 tokenUsageThreshold = chatContextSettings.summaryTokenThreshold.toDouble(),
                 chatModelConfigIdOverride = resolvedChatModelConfigIdOverride,
                 chatModelIndexOverride = resolvedChatModelIndexOverride,
@@ -614,7 +618,11 @@ class MessageCoordinationDelegate(
 
         // 当前请求使用的Token使用率阈值，默认使用配置值
         var tokenUsageThresholdForSend = chatContextSettings.summaryTokenThreshold.toDouble()
-        val maxTokensForSend = (chatContextSettings.effectiveContextLength * 1024).toInt()
+        val maxTokensForSend =
+            (chatContextSettings.effectiveContextLength * 1024)
+                .toLong()
+                .coerceIn(0L, Int.MAX_VALUE.toLong())
+                .toInt()
 
         // 如果不是续写，检查是否需要总结
         if (turnOptions.persistTurn && !isBackgroundSend && !isContinuation && !skipSummaryCheck) {
@@ -623,7 +631,7 @@ class MessageCoordinationDelegate(
 
             val isShouldGenerateSummary = AIMessageManager.shouldGenerateSummary(
                 messages = currentMessages,
-                currentTokens = currentTokens,
+                currentTokens = currentTokens.coerceAtMost(Int.MAX_VALUE.toLong()).toInt(),
                 maxTokens = maxTokensForSend,
                 tokenUsageThreshold = tokenUsageThresholdForSend,
                 enableSummary = chatContextSettings.enableSummary,
@@ -1315,10 +1323,14 @@ class MessageCoordinationDelegate(
 
         val currentMessages = chatHistoryDelegate.getRuntimeChatHistory(chatId)
         val currentTokens = tokenStatsDelegate.getLastCurrentWindowSize(chatId)
-        val maxTokens = (chatContextSettings.effectiveContextLength * 1024).toInt()
+        val maxTokens =
+            (chatContextSettings.effectiveContextLength * 1024)
+                .toLong()
+                .coerceIn(0L, Int.MAX_VALUE.toLong())
+                .toInt()
         val shouldSummarize = AIMessageManager.shouldGenerateSummary(
             messages = currentMessages,
-            currentTokens = currentTokens,
+            currentTokens = currentTokens.coerceAtMost(Int.MAX_VALUE.toLong()).toInt(),
             maxTokens = maxTokens,
             tokenUsageThreshold = chatContextSettings.summaryTokenThreshold.toDouble(),
             enableSummary = chatContextSettings.enableSummary,

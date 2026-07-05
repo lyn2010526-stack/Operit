@@ -38,7 +38,7 @@ class TokenCacheManager {
      * 获取总输入token数量（缓存 + 当前）
      */
     val totalInputTokenCount: Int
-        get() = _cachedInputTokenCount + _currentInputTokenCount
+        get() = saturatedTokenSum(_cachedInputTokenCount, _currentInputTokenCount)
     
     /**
      * 获取输出token数量
@@ -61,7 +61,7 @@ class TokenCacheManager {
      * 增加输出token数量
      */
     fun addOutputTokens(tokens: Int) {
-        _outputTokenCount += tokens
+        _outputTokenCount = saturatedTokenDelta(_outputTokenCount, tokens)
     }
 
     /**
@@ -79,8 +79,8 @@ class TokenCacheManager {
      * @param cachedInput 缓存命中的token数量
      */
     fun updateActualTokens(actualInput: Int, cachedInput: Int) {
-        _currentInputTokenCount = actualInput
-        _cachedInputTokenCount = cachedInput
+        _currentInputTokenCount = actualInput.coerceAtLeast(0)
+        _cachedInputTokenCount = cachedInput.coerceAtLeast(0)
     }
     
     /**
@@ -150,7 +150,7 @@ class TokenCacheManager {
             _currentInputTokenCount = newTokens
 
             // 更新缓存的历史记录 token 数量
-            previousHistoryTokenCount = cachedTokens + newTokens
+            previousHistoryTokenCount = saturatedTokenSum(cachedTokens, newTokens)
 
             // 更新缓存的历史记录列表（包含工具定义）
             if (chatHistory.isNotEmpty()) {
@@ -170,7 +170,16 @@ class TokenCacheManager {
             }
         }
 
-        return cachedTokens + newTokens
+        return saturatedTokenSum(cachedTokens, newTokens)
+    }
+
+    private fun saturatedTokenSum(vararg values: Int): Int {
+        val total = values.fold(0L) { acc, value -> acc + value.toLong().coerceAtLeast(0L) }
+        return total.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+    }
+
+    private fun saturatedTokenDelta(current: Int, delta: Int): Int {
+        return (current.toLong() + delta.toLong()).coerceIn(0L, Int.MAX_VALUE.toLong()).toInt()
     }
     
     /**
@@ -198,6 +207,9 @@ class TokenCacheManager {
      * 计算聊天历史的token数量
      */
     private fun calculateTokensForHistory(history: List<Pair<String, String>>): Int {
-        return history.sumOf { (_, content) -> ChatUtils.estimateTokenCount(content) }
+        val total = history.fold(0L) { acc, (_, content) ->
+            acc + ChatUtils.estimateTokenCount(content).toLong().coerceAtLeast(0L)
+        }
+        return total.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
     }
-} 
+}

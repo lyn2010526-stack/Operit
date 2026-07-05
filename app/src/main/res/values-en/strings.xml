@@ -3487,6 +3487,14 @@
     
     <string name="settings_data_permissions">Data and Permissions</string>
     <string name="settings_tool_permissions_subtitle">Tool permissions and security settings</string>
+    <string name="settings_privacy_data_cleanup">Privacy and Data Cleanup</string>
+    <string name="settings_clear_cookies">Clear Cookies</string>
+    <string name="settings_clear_cookies_subtitle">Clear cookies saved by search tools, the Browser package, and the built-in browser</string>
+    <string name="clear_cookies_dialog_title">Clear cookies?</string>
+    <string name="clear_cookies_dialog_message">This will clear cookies saved by search tools, the Browser package, and the built-in browser. Open pages may need you to sign in again.</string>
+    <string name="clear_cookies_confirm">Clear</string>
+    <string name="clear_cookies_success">Cookies cleared</string>
+    <string name="clear_cookies_failed">Failed to clear cookies</string>
     <string name="settings_data_backup_subtitle">Chat history backup management</string>
     <string name="settings_token_usage_stats">Token Usage Statistics</string>
     <string name="settings_function_label">Function</string>

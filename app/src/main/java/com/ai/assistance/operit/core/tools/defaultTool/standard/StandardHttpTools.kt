@@ -14,6 +14,7 @@ import java.net.Proxy
 import java.net.URL
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
@@ -53,10 +54,13 @@ class StandardHttpTools(private val context: Context) {
         private const val TAG = "HttpTools"
         private const val USER_AGENT =
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
-    }
 
-    // 内存中的Cookie存储
-    private val cookieStore = mutableMapOf<String, List<Cookie>>()
+        private val cookieStore = ConcurrentHashMap<String, List<Cookie>>()
+
+        internal fun clearSharedCookies() {
+            cookieStore.clear()
+        }
+    }
 
     // 自定义CookieJar实现
     private val cookieJar =
@@ -578,7 +582,7 @@ class StandardHttpTools(private val context: Context) {
                 "clear" -> {
                     if (domain.isBlank()) {
                         // 清除所有Cookie
-                        cookieStore.clear()
+                        CookiePrivacyManager.clearAllCookies()
                         ToolResult(
                                 toolName = tool.name,
                                 success = true,

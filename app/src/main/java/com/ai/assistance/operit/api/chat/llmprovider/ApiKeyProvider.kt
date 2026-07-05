@@ -13,6 +13,9 @@ import kotlinx.coroutines.sync.withLock
 interface ApiKeyProvider {
     /** 获取当前可用的API Key */
     suspend fun getApiKey(): String
+
+    /** 获取当前会参与轮询的API Key数量 */
+    suspend fun getCandidateKeyCount(): Int
 }
 
 /**
@@ -23,6 +26,8 @@ class SingleApiKeyProvider(private val apiKey: String) : ApiKeyProvider {
         AppLogger.d("ApiKeyProvider", "Using single API key: ${apiKey.take(4)}...${apiKey.takeLast(4)}")
         return apiKey
     }
+
+    override suspend fun getCandidateKeyCount(): Int = if (apiKey.isNotBlank()) 1 else 0
 }
 
 /**
@@ -83,6 +88,24 @@ class MultiApiKeyProvider(
             modelConfigManager.updateConfigKeyIndex(configId, nextIndex)
 
             selectedKey.key
+        }
+    }
+
+    override suspend fun getCandidateKeyCount(): Int {
+        return mutex.withLock {
+            val config = modelConfigManager.getModelConfig(configId)
+                ?: throw IllegalStateException("Config with ID $configId not found")
+
+            val enabledKeys = config.apiKeyPool.filter { it.isEnabled }
+            val hasAnyAvailabilityMark = enabledKeys.any { it.availabilityStatus != ApiKeyAvailabilityStatus.UNTESTED }
+            val candidateKeys =
+                if (hasAnyAvailabilityMark) {
+                    enabledKeys.filter { it.availabilityStatus == ApiKeyAvailabilityStatus.AVAILABLE }
+                } else {
+                    enabledKeys
+                }
+
+            candidateKeys.size
         }
     }
 }

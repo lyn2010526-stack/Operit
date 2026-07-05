@@ -35,7 +35,7 @@ class ChatHistoryDelegate(
         private val onTokenStatisticsLoaded: (chatId: String, inputTokens: Int, outputTokens: Int, windowSize: Int) -> Unit,
         private val getEnhancedAiService: () -> EnhancedAIService?,
         private val ensureAiServiceAvailable: () -> Unit = {}, // 确保AI服务可用的回调
-        private val getChatStatistics: () -> Triple<Int, Int, Int> = { Triple(0, 0, 0) }, // 获取（输入token, 输出token, 窗口大小）
+        private val getChatStatistics: () -> Triple<Long, Long, Long> = { Triple(0L, 0L, 0L) }, // 获取（输入token, 输出token, 窗口大小）
         private val onScrollToBottom: () -> Unit = {} // 滚动到底部事件回调
 ) {
     companion object {
@@ -43,6 +43,8 @@ class ChatHistoryDelegate(
         private const val DISPLAY_WINDOW_QUERY_BATCH_SIZE = 80
         // This constant is now in AIMessageManager
         // private const val SUMMARY_CHUNK_SIZE = 8
+
+        private fun Long.toPersistedTokenCount(): Int = coerceIn(0L, Int.MAX_VALUE.toLong()).toInt()
     }
 
     private val chatHistoryManager = ChatHistoryManager.getInstance(context)
@@ -1223,24 +1225,24 @@ class ChatHistoryDelegate(
 
     /** 保存当前聊天到持久存储 */
     suspend fun saveCurrentChat(
-        inputTokens: Int = 0,
-        outputTokens: Int = 0,
-        actualContextWindowSize: Int = 0,
+        inputTokens: Long = 0L,
+        outputTokens: Long = 0L,
+        actualContextWindowSize: Long = 0L,
         chatIdOverride: String? = null
     ) {
         val chatId = chatIdOverride ?: _currentChatId.value
         chatId?.let {
             if (
                 _chatHistory.value.isNotEmpty() ||
-                    inputTokens != 0 ||
-                    outputTokens != 0 ||
-                    actualContextWindowSize != 0
+                    inputTokens != 0L ||
+                    outputTokens != 0L ||
+                    actualContextWindowSize != 0L
             ) {
                 chatHistoryManager.updateChatTokenCounts(
                     it,
-                    inputTokens,
-                    outputTokens,
-                    actualContextWindowSize
+                    inputTokens.toPersistedTokenCount(),
+                    outputTokens.toPersistedTokenCount(),
+                    actualContextWindowSize.toPersistedTokenCount()
                 )
             }
         }
@@ -1681,7 +1683,7 @@ class ChatHistoryDelegate(
     }
 
     /** 通过回调获取当前token统计数据 */
-    private fun getCurrentTokenCounts(): Pair<Int, Int> {
+    private fun getCurrentTokenCounts(): Pair<Long, Long> {
         // 使用构造函数中传入的回调获取当前token统计数据
         val stats = getChatStatistics()
         return Pair(stats.first, stats.second)

@@ -642,7 +642,7 @@ data class WebInputSettingsState(
     @SerialName("permission_level")
     val permissionLevel: String,
     @SerialName("current_window_tokens")
-    val currentWindowTokens: Int,
+    val currentWindowTokens: Long,
     @SerialName("base_context_length_k")
     val baseContextLengthK: Float,
     @SerialName("max_context_length_k")
@@ -650,7 +650,7 @@ data class WebInputSettingsState(
     @SerialName("active_context_length_k")
     val activeContextLengthK: Float,
     @SerialName("max_window_tokens")
-    val maxWindowTokens: Int
+    val maxWindowTokens: Long
 )
 
 @Serializable

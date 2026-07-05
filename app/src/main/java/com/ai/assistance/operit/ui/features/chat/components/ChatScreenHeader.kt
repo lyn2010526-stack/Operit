@@ -170,11 +170,13 @@ fun ChatScreenHeader(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // 统计信息
-            val maxWindowSize = (maxWindowSizeInK * 1024).toInt()
+            val maxWindowSize = (maxWindowSizeInK * 1024).toLong().coerceAtLeast(0L)
             val totalTokenCount = inputTokenCount + outputTokenCount
             val contextUsagePercentage =
                     if (maxWindowSize > 0) {
-                        (currentWindowSize.toFloat() / maxWindowSize) * 100
+                        ((currentWindowSize.toDouble() / maxWindowSize.toDouble()) * 100.0)
+                            .coerceAtMost(999.0)
+                            .toFloat()
                     } else {
                         0f
                     }
@@ -184,7 +186,7 @@ fun ChatScreenHeader(
 
             Box {
                 // 主要显示（圆环进度）
-                val progress = contextUsagePercentage / 100f
+                val progress = (contextUsagePercentage / 100f).coerceIn(0f, 1f)
                 val animatedProgress by animateFloatAsState(targetValue = progress, label = "TokenProgressAnimation")
                 val progressColor = when {
                     contextUsagePercentage > 90 -> MaterialTheme.colorScheme.error

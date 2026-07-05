@@ -218,6 +218,8 @@ fun AgentChatInputSection(
     onNavigateToPackageManager: () -> Unit = {},
     toolPromptVisibility: Map<String, Boolean> = emptyMap(),
     onSaveToolPromptVisibilityMap: (Map<String, Boolean>) -> Unit = {},
+    toolOrder: List<String> = emptyList(),
+    onSaveToolOrder: (List<String>) -> Unit = {},
     onManualMemoryUpdate: () -> Unit = {},
     onNavigateToModelConfig: () -> Unit = {},
     characterCardBoundChatModelConfigId: String? = null,
@@ -410,12 +412,13 @@ fun AgentChatInputSection(
     val maxWindowSizeInK by actualViewModel.maxWindowSizeInK.collectAsState()
     val baseContextLengthInK by actualViewModel.baseContextLengthInK.collectAsState()
     val maxContextLengthInK by actualViewModel.maxContextLengthInK.collectAsState()
-    val maxTokens = (maxWindowSizeInK * 1024).toInt()
+    val maxTokens = (maxWindowSizeInK * 1024).toLong().coerceAtLeast(0L)
     val userMessageTokens = remember(userMessage.text) { ChatUtils.estimateTokenCount(userMessage.text) }
+    val projectedTokens = userMessageTokens.toLong() + currentWindowSize
 
     val isOverTokenLimit =
         if (maxTokens > 0) {
-            (userMessageTokens + currentWindowSize) > maxTokens
+            projectedTokens > maxTokens
         } else {
             false
         }
@@ -431,7 +434,7 @@ fun AgentChatInputSection(
                 text =
                     context.getString(
                         R.string.token_limit_exceeded_message,
-                        userMessageTokens + currentWindowSize,
+                        projectedTokens,
                         maxTokens,
                     ),
                 color = MaterialTheme.colorScheme.error,
@@ -1444,6 +1447,8 @@ fun AgentChatInputSection(
                 onToggleDisableUserPreferenceDescription = onToggleDisableUserPreferenceDescription,
                 toolPromptVisibility = toolPromptVisibility,
                 onSaveToolPromptVisibilityMap = onSaveToolPromptVisibilityMap,
+                toolOrder = toolOrder,
+                onSaveToolOrder = onSaveToolOrder,
                 onNavigateToPackageManager = onNavigateToPackageManager,
                 onManualMemoryUpdate = onManualMemoryUpdate,
                 onDismiss = { showExtraSettingsPopup.value = false },
@@ -2264,6 +2269,8 @@ private fun AgentExtraSettingsPopup(
     onToggleDisableUserPreferenceDescription: () -> Unit,
     toolPromptVisibility: Map<String, Boolean>,
     onSaveToolPromptVisibilityMap: (Map<String, Boolean>) -> Unit,
+    toolOrder: List<String> = emptyList(),
+    onSaveToolOrder: (List<String>) -> Unit = {},
     onNavigateToPackageManager: () -> Unit,
     onManualMemoryUpdate: () -> Unit,
     onDismiss: () -> Unit,
@@ -2465,7 +2472,9 @@ private fun AgentExtraSettingsPopup(
             ToolPromptManagerDialog(
                 visible = showToolPromptManagerDialog,
                 toolPromptVisibility = toolPromptVisibility,
+                toolOrder = toolOrder,
                 onSaveToolPromptVisibilityMap = onSaveToolPromptVisibilityMap,
+                onSaveToolOrder = onSaveToolOrder,
                 onDismissRequest = { showToolPromptManagerDialog = false },
                 onManagePackagesClick = {
                     showToolPromptManagerDialog = false

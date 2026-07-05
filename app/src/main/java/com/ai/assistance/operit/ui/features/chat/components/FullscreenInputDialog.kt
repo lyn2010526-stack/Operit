@@ -6,6 +6,10 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -26,9 +30,15 @@ fun FullscreenInputDialog(
 ) {
     val mentionVisualTransformation =
         rememberMentionVisualTransformation(MaterialTheme.typography.bodyLarge)
+    var editorValue by remember { mutableStateOf(value) }
+
+    fun finishEditing() {
+        onValueChange(editorValue)
+        onDismiss()
+    }
 
     Dialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { finishEditing() },
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
     ) {
         Surface(
@@ -49,7 +59,7 @@ fun FullscreenInputDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    IconButton(onClick = onDismiss) {
+                    IconButton(onClick = { finishEditing() }) {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = stringResource(R.string.workflow_close)
@@ -61,7 +71,12 @@ fun FullscreenInputDialog(
                         style = MaterialTheme.typography.titleMedium
                     )
 
-                    IconButton(onClick = onConfirm) {
+                    IconButton(
+                        onClick = {
+                            onValueChange(editorValue)
+                            onConfirm()
+                        }
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Check,
                             contentDescription = stringResource(R.string.save)
@@ -73,8 +88,8 @@ fun FullscreenInputDialog(
 
                 // Input Area
                 TextField(
-                    value = value,
-                    onValueChange = onValueChange,
+                    value = editorValue,
+                    onValueChange = { editorValue = it },
                     visualTransformation = mentionVisualTransformation,
                     modifier = Modifier
                         .fillMaxSize()

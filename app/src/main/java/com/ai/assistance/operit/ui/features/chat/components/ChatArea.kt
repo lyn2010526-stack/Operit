@@ -12,8 +12,9 @@ import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -604,6 +605,7 @@ private fun MessageItem(
     var showDeleteMessageConfirmDialog by remember { mutableStateOf(false) }
     var copyPreviewText by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
+    val messageInteractionSource = remember { MutableInteractionSource() }
 
     // 只有用户和AI的消息才能被操作
     val isActionable = message.sender == "user" || message.sender == "ai"
@@ -622,6 +624,8 @@ private fun MessageItem(
                 } else Modifier
             )
             .combinedClickable(
+                interactionSource = messageInteractionSource,
+                indication = null,
                 onClick = {
                     if (isMultiSelectMode && isActionable) {
                         onToggleSelection?.invoke()
@@ -1117,6 +1121,7 @@ private fun MessageCopyPreviewBottomSheet(
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val textScrollState = rememberScrollState()
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -1132,18 +1137,20 @@ private fun MessageCopyPreviewBottomSheet(
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(bottom = 12.dp)
             )
-            BasicTextField(
-                value = text,
-                onValueChange = {},
-                readOnly = true,
-                textStyle = MaterialTheme.typography.bodyMedium.copy(
-                    color = MaterialTheme.colorScheme.onSurface
-                ),
+            SelectionContainer(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(max = 520.dp)
+                    .verticalScroll(textScrollState)
                     .padding(bottom = 12.dp)
-            )
+            ) {
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,

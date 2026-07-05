@@ -61,6 +61,8 @@ class ChatServiceCore(
     
     // 额外的 onTurnComplete 回调（用于悬浮窗通知应用等场景）
     private var additionalOnTurnComplete: ((String?, Int, Int, Int) -> Unit)? = null
+
+    private fun Long.toTokenCountCallbackInt(): Int = coerceIn(0L, Int.MAX_VALUE.toLong()).toInt()
     private var uiBridge: ChatServiceUiBridge = EmptyChatServiceUiBridge
     private val workspaceChangeTracker = WorkspaceChangeTracker.getInstance(context)
     private val workspaceTrackerOwnerId = "${selectionMode.name}@${System.identityHashCode(this)}"
@@ -183,7 +185,7 @@ class ChatServiceCore(
             onTurnComplete = { chatId, service, nextWindowSize, turnOptions ->
                 tokenStatisticsDelegate.updateCumulativeStatistics(chatId, service)
                 val (inputTokens, outputTokens) = tokenStatisticsDelegate.getCumulativeTokenCounts(chatId)
-                val windowSize = nextWindowSize ?: tokenStatisticsDelegate.getLastCurrentWindowSize(chatId)
+                val windowSize = nextWindowSize?.toLong() ?: tokenStatisticsDelegate.getLastCurrentWindowSize(chatId)
                 tokenStatisticsDelegate.setTokenCounts(chatId, inputTokens, outputTokens, windowSize)
                 if (turnOptions.persistTurn) {
                     chatHistoryDelegate.saveCurrentChat(
@@ -193,7 +195,12 @@ class ChatServiceCore(
                         chatIdOverride = chatId
                     )
                 }
-                additionalOnTurnComplete?.invoke(chatId, inputTokens, outputTokens, windowSize)
+                additionalOnTurnComplete?.invoke(
+                    chatId,
+                    inputTokens.toTokenCountCallbackInt(),
+                    outputTokens.toTokenCountCallbackInt(),
+                    windowSize.toTokenCountCallbackInt()
+                )
             },
             getIsAutoReadEnabled = {
                 apiConfigDelegate.enableAutoRead.value
@@ -452,13 +459,13 @@ class ChatServiceCore(
         get() = apiConfigDelegate.enableTools
 
     // Token 统计相关
-    val cumulativeInputTokensFlow: StateFlow<Int>
+    val cumulativeInputTokensFlow: StateFlow<Long>
         get() = tokenStatisticsDelegate.cumulativeInputTokensFlow
 
-    val cumulativeOutputTokensFlow: StateFlow<Int>
+    val cumulativeOutputTokensFlow: StateFlow<Long>
         get() = tokenStatisticsDelegate.cumulativeOutputTokensFlow
 
-    val currentWindowSizeFlow: StateFlow<Int>
+    val currentWindowSizeFlow: StateFlow<Long>
         get() = tokenStatisticsDelegate.currentWindowSizeFlow
 
     val perRequestTokenCountFlow: StateFlow<Pair<Int, Int>?>
@@ -540,4 +547,3 @@ class ChatServiceCore(
         }
     }
 }
-
