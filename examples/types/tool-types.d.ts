@@ -138,6 +138,7 @@ export interface ToolResultMap {
 
     // UI operations
     'get_page_info': UIPageResultData;
+    'capture_screenshot': StringResultData;
     'click_element': UIActionResultData;
     'tap': UIActionResultData;
     'set_input_text': UIActionResultData;

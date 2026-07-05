@@ -321,11 +321,7 @@ fun buildPublishArtifactDescriptor(
             ?.trim()
             ?.takeIf { it.isNotBlank() }
             ?: displayName.trim().ifBlank { localArtifact.displayName }
-    val projectDescription =
-        publishContext?.projectDescription
-            ?.trim()
-            ?.takeIf { it.isNotBlank() }
-            ?: detail.trim().ifBlank { description.trim().ifBlank { localArtifact.description } }
+    val projectDescription = detail.trim().ifBlank { description.trim().ifBlank { localArtifact.description } }
     val resolvedCategoryId = publishContext?.categoryId?.trim().orEmpty().ifBlank { categoryId.trim() }
     val assetName = "$normalizedRuntimePackageId-v$cleanVersion.$extension"
 

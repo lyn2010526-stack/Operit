@@ -1054,6 +1054,7 @@ fun getJsToolsDefinition(): String {
             // UI操作
             UI: {
                 getPageInfo: () => toolCall("get_page_info"),
+                captureScreenshot: () => toolCall("capture_screenshot"),
                 tap: (x, y) => toolCall("tap", { x, y }),
                 longPress: (x, y) => toolCall("long_press", { x, y }),
                 // 增强的clickElement方法，支持多种参数类型

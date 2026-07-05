@@ -1036,16 +1036,19 @@ const dailyLife = (function () {
      */
     async function take_screenshot(params) {
         try {
-            let filePath = params.file_path;
-            const screenshotDir = "/sdcard/DCIM/Screenshots";
-            // Ensure the directory exists
-            await Tools.Files.mkdir(screenshotDir, true);
-            if (!filePath) {
-                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-                filePath = `${screenshotDir}/screenshot_${timestamp}.png`;
+            const result = await Tools.UI.captureScreenshot();
+            let filePath = result.value;
+            if (params.file_path) {
+                const targetPath = params.file_path;
+                const lastSlashIndex = targetPath.lastIndexOf('/');
+                if (lastSlashIndex > 0) {
+                    const targetDir = targetPath.substring(0, lastSlashIndex);
+                    await Tools.Files.mkdir(targetDir, true);
+                }
+                await Tools.Files.move(filePath, targetPath);
+                filePath = targetPath;
             }
-            console.log(`截取屏幕并保存到: ${filePath}`);
-            const result = await Tools.System.shell(`screencap -p ${filePath}`);
+            console.log(`截图已保存到: ${filePath}`);
             return {
                 success: true,
                 message: `截图已保存到 ${filePath}`,
