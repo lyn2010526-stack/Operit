@@ -1240,123 +1240,132 @@ private fun WorkspaceCommandExecutionDialog(
         onDismissRequest = onClose,
         properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
     ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            shape = RoundedCornerShape(20.dp),
-            tonalElevation = 8.dp
-        ) {
-            Column(
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val outerPadding = if (maxHeight < 560.dp) 8.dp else 20.dp
+            val contentPadding = if (maxWidth < 320.dp || maxHeight < 560.dp) 16.dp else 20.dp
+            val outputMinHeight = if (maxHeight < 560.dp) 96.dp else 140.dp
+            val outputMaxHeight = if (maxHeight < 560.dp) 220.dp else 360.dp
+
+            Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(outerPadding)
+                    .heightIn(max = maxHeight - outerPadding * 2),
+                shape = RoundedCornerShape(20.dp),
+                tonalElevation = 8.dp
             ) {
-                Text(
-                    text = state.commandLabel,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = state.commandText,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = stringResource(
-                        if (!state.isRunning) {
-                            R.string.workspace_command_finished
-                        } else if (state.isCancelling) {
-                            R.string.workspace_command_cancelling
-                        } else {
-                            R.string.workspace_command_running
-                        }
-                    ),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                if (state.isRunning) {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                }
-                Surface(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 180.dp, max = 360.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                        .padding(contentPadding),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    if (state.outputEntries.isEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = stringResource(
-                                    if (state.isRunning) {
-                                        R.string.workspace_command_waiting_output
-                                    } else {
-                                        R.string.workspace_command_no_output
-                                    }
-                                ),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    } else {
-                        SelectionContainer {
-                            LazyColumn(
-                                state = listState,
-                                modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                    Text(
+                        text = state.commandLabel,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = state.commandText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = stringResource(
+                            if (!state.isRunning) {
+                                R.string.workspace_command_finished
+                            } else if (state.isCancelling) {
+                                R.string.workspace_command_cancelling
+                            } else {
+                                R.string.workspace_command_running
+                            }
+                        ),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    if (state.isRunning) {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    }
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f, fill = false)
+                            .heightIn(min = outputMinHeight, max = outputMaxHeight),
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                    ) {
+                        if (state.outputEntries.isEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
                             ) {
-                                itemsIndexed(
-                                    items = state.outputEntries,
-                                    key = { index, _ -> index }
-                                ) { _, line ->
-                                    Text(
-                                        text = line.ifEmpty { " " },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        fontFamily = FontFamily.Monospace
-                                    )
+                                Text(
+                                    text = stringResource(
+                                        if (state.isRunning) {
+                                            R.string.workspace_command_waiting_output
+                                        } else {
+                                            R.string.workspace_command_no_output
+                                        }
+                                    ),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        } else {
+                            SelectionContainer {
+                                LazyColumn(
+                                    state = listState,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentPadding = PaddingValues(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    itemsIndexed(
+                                        items = state.outputEntries,
+                                        key = { index, _ -> index }
+                                    ) { _, line ->
+                                        Text(
+                                            text = line.ifEmpty { " " },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            fontFamily = FontFamily.Monospace
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    if (state.isRunning) {
-                        TextButton(onClick = onClose) {
-                            Text(stringResource(R.string.workspace_command_hide))
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        TextButton(
-                            onClick = onCancel,
-                            enabled = !state.isCancelling
-                        ) {
-                            Text(stringResource(R.string.cancel))
-                        }
-                    } else {
-                        TextButton(
-                            onClick = { onCopyOutput(outputText) },
-                            enabled = state.outputEntries.isNotEmpty()
-                        ) {
-                            Text(stringResource(R.string.copy_result))
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        TextButton(onClick = onClose) {
-                            Text(stringResource(R.string.confirm))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        if (state.isRunning) {
+                            TextButton(onClick = onClose) {
+                                Text(stringResource(R.string.workspace_command_hide))
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            TextButton(
+                                onClick = onCancel,
+                                enabled = !state.isCancelling
+                            ) {
+                                Text(stringResource(R.string.cancel))
+                            }
+                        } else {
+                            TextButton(
+                                onClick = { onCopyOutput(outputText) },
+                                enabled = state.outputEntries.isNotEmpty()
+                            ) {
+                                Text(stringResource(R.string.copy_result))
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            TextButton(onClick = onClose) {
+                                Text(stringResource(R.string.confirm))
+                            }
                         }
                     }
                 }
