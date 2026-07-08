@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
@@ -1236,136 +1237,153 @@ private fun WorkspaceCommandExecutionDialog(
         }
     }
 
+    val configuration = LocalConfiguration.current
+    val isCompactDialog =
+        configuration.screenWidthDp < 320 || configuration.screenHeightDp < 560
+    val outerPadding = if (isCompactDialog) 8.dp else 20.dp
+    val contentPadding = if (isCompactDialog) 16.dp else 20.dp
+    val outputMinHeight = if (isCompactDialog) 96.dp else 180.dp
+    val outputMaxHeight = if (isCompactDialog) 220.dp else 360.dp
+    val maxDialogHeight = configuration.screenHeightDp.dp - outerPadding * 2
+    val surfaceModifier =
+        Modifier
+            .fillMaxWidth()
+            .padding(outerPadding)
+            .let { base ->
+                if (isCompactDialog) {
+                    base.heightIn(max = maxDialogHeight)
+                } else {
+                    base
+                }
+            }
+
     Dialog(
         onDismissRequest = onClose,
         properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
     ) {
-        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val outerPadding = if (maxHeight < 560.dp) 8.dp else 20.dp
-            val contentPadding = if (maxWidth < 320.dp || maxHeight < 560.dp) 16.dp else 20.dp
-            val outputMinHeight = if (maxHeight < 560.dp) 96.dp else 140.dp
-            val outputMaxHeight = if (maxHeight < 560.dp) 220.dp else 360.dp
-
-            Surface(
-                modifier = Modifier
+        Surface(
+            modifier = surfaceModifier,
+            shape = RoundedCornerShape(20.dp),
+            tonalElevation = 8.dp
+        ) {
+            Column(
+                Modifier
                     .fillMaxWidth()
-                    .padding(outerPadding)
-                    .heightIn(max = maxHeight - outerPadding * 2),
-                shape = RoundedCornerShape(20.dp),
-                tonalElevation = 8.dp
+                    .padding(contentPadding),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(contentPadding),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = state.commandLabel,
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = state.commandText,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = stringResource(
-                            if (!state.isRunning) {
-                                R.string.workspace_command_finished
-                            } else if (state.isCancelling) {
-                                R.string.workspace_command_cancelling
-                            } else {
-                                R.string.workspace_command_running
-                            }
-                        ),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    if (state.isRunning) {
-                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                    }
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f, fill = false)
-                            .heightIn(min = outputMinHeight, max = outputMaxHeight),
-                        shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
-                    ) {
-                        if (state.outputEntries.isEmpty()) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(16.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = stringResource(
-                                        if (state.isRunning) {
-                                            R.string.workspace_command_waiting_output
-                                        } else {
-                                            R.string.workspace_command_no_output
-                                        }
-                                    ),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = TextAlign.Center
-                                )
-                            }
+                Text(
+                    text = state.commandLabel,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = state.commandText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = stringResource(
+                        if (!state.isRunning) {
+                            R.string.workspace_command_finished
+                        } else if (state.isCancelling) {
+                            R.string.workspace_command_cancelling
                         } else {
-                            SelectionContainer {
-                                LazyColumn(
-                                    state = listState,
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentPadding = PaddingValues(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    itemsIndexed(
-                                        items = state.outputEntries,
-                                        key = { index, _ -> index }
-                                    ) { _, line ->
-                                        Text(
-                                            text = line.ifEmpty { " " },
-                                            modifier = Modifier.fillMaxWidth(),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            fontFamily = FontFamily.Monospace
-                                        )
+                            R.string.workspace_command_running
+                        }
+                    ),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                if (state.isRunning) {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
+                Surface(
+                    modifier =
+                        if (isCompactDialog) {
+                            Modifier
+                                .fillMaxWidth()
+                                .weight(1f, fill = false)
+                                .heightIn(min = outputMinHeight, max = outputMaxHeight)
+                        } else {
+                            Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = outputMinHeight, max = outputMaxHeight)
+                        },
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                ) {
+                    if (state.outputEntries.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = stringResource(
+                                    if (state.isRunning) {
+                                        R.string.workspace_command_waiting_output
+                                    } else {
+                                        R.string.workspace_command_no_output
                                     }
+                                ),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    } else {
+                        SelectionContainer {
+                            LazyColumn(
+                                state = listState,
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                itemsIndexed(
+                                    items = state.outputEntries,
+                                    key = { index, _ -> index }
+                                ) { _, line ->
+                                    Text(
+                                        text = line.ifEmpty { " " },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        fontFamily = FontFamily.Monospace
+                                    )
                                 }
                             }
                         }
                     }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        if (state.isRunning) {
-                            TextButton(onClick = onClose) {
-                                Text(stringResource(R.string.workspace_command_hide))
-                            }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            TextButton(
-                                onClick = onCancel,
-                                enabled = !state.isCancelling
-                            ) {
-                                Text(stringResource(R.string.cancel))
-                            }
-                        } else {
-                            TextButton(
-                                onClick = { onCopyOutput(outputText) },
-                                enabled = state.outputEntries.isNotEmpty()
-                            ) {
-                                Text(stringResource(R.string.copy_result))
-                            }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            TextButton(onClick = onClose) {
-                                Text(stringResource(R.string.confirm))
-                            }
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    if (state.isRunning) {
+                        TextButton(onClick = onClose) {
+                            Text(stringResource(R.string.workspace_command_hide))
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        TextButton(
+                            onClick = onCancel,
+                            enabled = !state.isCancelling
+                        ) {
+                            Text(stringResource(R.string.cancel))
+                        }
+                    } else {
+                        TextButton(
+                            onClick = { onCopyOutput(outputText) },
+                            enabled = state.outputEntries.isNotEmpty()
+                        ) {
+                            Text(stringResource(R.string.copy_result))
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        TextButton(onClick = onClose) {
+                            Text(stringResource(R.string.confirm))
                         }
                     }
                 }

@@ -13,7 +13,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -92,6 +91,7 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
@@ -1616,35 +1616,45 @@ fun ChatHistorySelector(
     }
 
     if (showSettingsDialog) {
-        Dialog(onDismissRequest = { showSettingsDialog = false }) {
-            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                val outerPadding = if (maxHeight < 560.dp) 8.dp else 16.dp
-                val contentPadding = if (maxWidth < 320.dp || maxHeight < 560.dp) 12.dp else 16.dp
+        val configuration = LocalConfiguration.current
+        val isCompactDialog =
+            configuration.screenWidthDp < 320 || configuration.screenHeightDp < 560
+        val outerPadding = if (isCompactDialog) 8.dp else 16.dp
+        val contentPadding = if (isCompactDialog) 12.dp else 16.dp
+        val maxDialogHeight = configuration.screenHeightDp.dp - outerPadding * 2
+        val scrollState = rememberScrollState()
+        val cardModifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(outerPadding)
+                .let { base ->
+                    if (isCompactDialog) base.heightIn(max = maxDialogHeight) else base
+                }
+        val contentModifier =
+            Modifier
+                .padding(contentPadding)
+                .let { base ->
+                    if (isCompactDialog) base.verticalScroll(scrollState) else base
+                }
 
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(outerPadding)
-                        .heightIn(max = maxHeight - outerPadding * 2),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    ),
-                    elevation = CardDefaults.cardElevation(
-                        defaultElevation = 6.dp
+        Dialog(onDismissRequest = { showSettingsDialog = false }) {
+            Card(
+                modifier = cardModifier,
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                elevation = CardDefaults.cardElevation(
+                    defaultElevation = 6.dp
+                )
+            ) {
+                Column(modifier = contentModifier) {
+                    Text(
+                        text = stringResource(R.string.chat_history_settings),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 16.dp)
                     )
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .padding(contentPadding)
-                            .verticalScroll(rememberScrollState())
-                    ) {
-                        Text(
-                            text = stringResource(R.string.chat_history_settings),
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(bottom = 16.dp)
-                        )
 
                     Text(
                         text = stringResource(R.string.chat_display_mode),
@@ -1805,12 +1815,11 @@ fun ChatHistorySelector(
                     
                     Spacer(modifier = Modifier.height(16.dp))
                     
-                        TextButton(
-                            onClick = { showSettingsDialog = false },
-                            modifier = Modifier.align(Alignment.End)
-                        ) {
-                            Text(stringResource(R.string.cancel))
-                        }
+                    TextButton(
+                        onClick = { showSettingsDialog = false },
+                        modifier = Modifier.align(Alignment.End)
+                    ) {
+                        Text(stringResource(R.string.cancel))
                     }
                 }
             }
