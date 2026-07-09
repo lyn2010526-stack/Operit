@@ -171,6 +171,8 @@ class ApiPreferences private constructor(private val context: Context) {
 
         // Default values for Thinking Mode
         const val DEFAULT_ENABLE_THINKING_MODE = false
+        const val MIN_THINKING_QUALITY_LEVEL = 1
+        const val MAX_THINKING_QUALITY_LEVEL = 5
         const val DEFAULT_THINKING_QUALITY_LEVEL = 2
 
         // Default value for Memory Auto Update
@@ -280,7 +282,10 @@ class ApiPreferences private constructor(private val context: Context) {
 
     val thinkingQualityLevelFlow: Flow<Int> =
         context.apiDataStore.data.map { preferences ->
-            (preferences[THINKING_QUALITY_LEVEL] ?: DEFAULT_THINKING_QUALITY_LEVEL).coerceIn(1, 4)
+            (preferences[THINKING_QUALITY_LEVEL] ?: DEFAULT_THINKING_QUALITY_LEVEL).coerceIn(
+                MIN_THINKING_QUALITY_LEVEL,
+                MAX_THINKING_QUALITY_LEVEL
+            )
         }
 
     // Flow for Memory Auto Update
@@ -393,7 +398,10 @@ class ApiPreferences private constructor(private val context: Context) {
 
     suspend fun saveThinkingQualityLevel(level: Int) {
         context.apiDataStore.edit { preferences ->
-            preferences[THINKING_QUALITY_LEVEL] = level.coerceIn(1, 4)
+            preferences[THINKING_QUALITY_LEVEL] = level.coerceIn(
+                MIN_THINKING_QUALITY_LEVEL,
+                MAX_THINKING_QUALITY_LEVEL
+            )
         }
     }
 
@@ -404,7 +412,12 @@ class ApiPreferences private constructor(private val context: Context) {
         context.apiDataStore.edit { preferences ->
             enableThinkingMode?.let { preferences[ENABLE_THINKING_MODE] = it }
 
-            thinkingQualityLevel?.let { preferences[THINKING_QUALITY_LEVEL] = it.coerceIn(1, 4) }
+            thinkingQualityLevel?.let {
+                preferences[THINKING_QUALITY_LEVEL] = it.coerceIn(
+                    MIN_THINKING_QUALITY_LEVEL,
+                    MAX_THINKING_QUALITY_LEVEL
+                )
+            }
         }
     }
 

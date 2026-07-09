@@ -45,7 +45,7 @@ const INFO_COPY = {
   },
   thinkingQuality: {
     title: '思考程度',
-    description: '仅在思考模式下生效，共 4 挡，数值越高思考越深，1 为自动。'
+    description: '仅在思考模式下生效，共 5 挡，数值越高思考越深；不同模型支持的档位可能不同。'
   },
   maxMode: {
     title: 'Max模式',
@@ -534,6 +534,7 @@ function ClassicThinkingSettingsItem({
                 <option value="2">2</option>
                 <option value="3">3</option>
                 <option value="4">4</option>
+                <option value="5">5</option>
               </select>
             </ClassicSettingsRow>
           ) : null}
@@ -692,7 +693,7 @@ export function ClassicChatSettingsBar({
   const [showDisableSettingsDropdown, setShowDisableSettingsDropdown] = useState(false);
   const [infoPopupContent, setInfoPopupContent] = useState<InfoContent | null>(null);
   const thinkingEnabled = inputSettings?.enable_thinking_mode ?? false;
-  const thinkingQualityLevel = Math.max(1, Math.min(4, inputSettings?.thinking_quality_level ?? 1));
+  const thinkingQualityLevel = Math.max(1, Math.min(5, inputSettings?.thinking_quality_level ?? 1));
   const enableMaxContextMode = inputSettings?.enable_max_context_mode ?? false;
   const enableMemoryAutoUpdate = inputSettings?.enable_memory_auto_update ?? false;
   const enableAutoRead = inputSettings?.enable_auto_read ?? false;

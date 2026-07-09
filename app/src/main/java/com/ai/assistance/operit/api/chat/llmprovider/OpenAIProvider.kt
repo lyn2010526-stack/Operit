@@ -11,6 +11,7 @@ import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.ModelOption
 import com.ai.assistance.operit.data.model.ModelParameter
 import com.ai.assistance.operit.data.model.ToolPrompt
+import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.api.chat.llmprovider.EndpointCompleter
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.ChatMarkupRegex
@@ -38,6 +39,8 @@ import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
@@ -547,7 +550,59 @@ open class OpenAIProvider(
     ): RequestBody {
         val jsonString =
             createRequestBodyInternal(context, chatHistory, modelParameters, stream, availableTools, preserveThinkInHistory)
-        return createJsonRequestBody(jsonString)
+        if (providerType != ApiProviderType.OPENAI || !OpenAiGpt56Reasoning.supports(modelName)) {
+            return createJsonRequestBody(jsonString)
+        }
+        val requestJson = JSONObject(jsonString)
+        applyOfficialGpt56ChatReasoning(context, requestJson, enableThinking)
+        return createJsonRequestBody(requestJson.toString())
+    }
+
+    private fun applyOfficialGpt56ChatReasoning(
+        context: Context,
+        requestJson: JSONObject,
+        enableThinking: Boolean
+    ) {
+        if (providerType != ApiProviderType.OPENAI || !OpenAiGpt56Reasoning.supports(modelName)) {
+            return
+        }
+
+        val existingEffort = requestJson.optString("reasoning_effort", "").trim()
+        if (existingEffort.isNotEmpty()) {
+            AppLogger.d(
+                "OpenAIProvider",
+                "Preserving caller-supplied Chat Completions reasoning_effort=$existingEffort"
+            )
+            return
+        }
+
+        val effort = if (enableThinking) {
+            resolveGpt56ChatReasoningEffort(context)
+        } else {
+            "none"
+        } ?: return
+        requestJson.put("reasoning_effort", effort)
+        AppLogger.d(
+            "OpenAIProvider",
+            "GPT-5.6 Chat Completions reasoning_effort=$effort"
+        )
+    }
+
+    private fun resolveGpt56ChatReasoningEffort(context: Context): String? {
+        val qualityLevel = runCatching {
+            runBlocking {
+                ApiPreferences.getInstance(context).thinkingQualityLevelFlow.first()
+            }
+        }.getOrElse {
+            AppLogger.w(
+                "OpenAIProvider",
+                "Failed to read thinking quality level; reasoning_effort not applied",
+                it
+            )
+            return null
+        }
+
+        return OpenAiGpt56Reasoning.effortForQualityLevel(qualityLevel)
     }
 
     protected fun createJsonRequestBody(jsonString: String): RequestBody {

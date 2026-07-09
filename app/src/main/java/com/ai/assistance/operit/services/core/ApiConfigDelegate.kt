@@ -553,7 +553,10 @@ class ApiConfigDelegate(
 
     fun updateThinkingQualityLevel(level: Int) {
         configScope.launch {
-            val clampedLevel = level.coerceIn(1, 4)
+            val clampedLevel = level.coerceIn(
+                ApiPreferences.MIN_THINKING_QUALITY_LEVEL,
+                ApiPreferences.MAX_THINKING_QUALITY_LEVEL
+            )
             apiPreferences.saveThinkingQualityLevel(clampedLevel)
             _thinkingQualityLevel.value = clampedLevel
         }

@@ -67,6 +67,10 @@ object ScrapedModelPricingRowsCollect {
         OPENAI|gpt-5.4-nano|TOKEN|0.2|1.25|0.02|USD
         OPENAI|gpt-5.4|TOKEN|2.5|15|0.25|USD
         OPENAI|gpt-5.5|TOKEN|5|30|0.5|USD
+        OPENAI|gpt-5.6|TOKEN|5|30|0.5|USD
+        OPENAI|gpt-5.6-sol|TOKEN|5|30|0.5|USD
+        OPENAI|gpt-5.6-terra|TOKEN|2.5|15|0.25|USD
+        OPENAI|gpt-5.6-luna|TOKEN|1|6|0.1|USD
         OPENAI|gpt-5|TOKEN|0.75|6|0|USD
         OPENAI|gpt-audio-2025-08-28|TOKEN|1.5|3|0|USD
         OPENAI|gpt-image-1-mini|TOKEN|1.5|4.8|0|USD
@@ -165,6 +169,10 @@ object ScrapedModelPricingRowsCollect {
         OPENAI_RESPONSES|gpt-5.4-nano|TOKEN|0.2|1.25|0.02|USD
         OPENAI_RESPONSES|gpt-5.4|TOKEN|2.5|15|0.25|USD
         OPENAI_RESPONSES|gpt-5.5|TOKEN|5|30|0.5|USD
+        OPENAI_RESPONSES|gpt-5.6|TOKEN|5|30|0.5|USD
+        OPENAI_RESPONSES|gpt-5.6-sol|TOKEN|5|30|0.5|USD
+        OPENAI_RESPONSES|gpt-5.6-terra|TOKEN|2.5|15|0.25|USD
+        OPENAI_RESPONSES|gpt-5.6-luna|TOKEN|1|6|0.1|USD
         OPENAI_RESPONSES|gpt-5|TOKEN|0.75|6|0|USD
         OPENAI_RESPONSES|gpt-audio-2025-08-28|TOKEN|1.5|3|0|USD
         OPENAI_RESPONSES|gpt-image-1-mini|TOKEN|1.5|4.8|0|USD

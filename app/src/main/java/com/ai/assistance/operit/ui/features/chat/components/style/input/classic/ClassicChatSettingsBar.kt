@@ -62,6 +62,7 @@ import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.data.model.ModelConfigSummary
 import com.ai.assistance.operit.data.model.PreferenceProfile
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
+import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.model.ActivePrompt
 import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
@@ -1385,12 +1386,17 @@ private fun ThinkingSettingsItem(
                             icon = Icons.Outlined.Speed,
                             value = thinkingQualityLevel.toFloat(),
                             onValueChange = { newValue ->
-                                val intValue = newValue.toInt().coerceIn(1, 4)
+                                val intValue = newValue.toInt().coerceIn(
+                                    ApiPreferences.MIN_THINKING_QUALITY_LEVEL,
+                                    ApiPreferences.MAX_THINKING_QUALITY_LEVEL
+                                )
                                 onThinkingQualityLevelChange(intValue)
                             },
                             onInfoClick = onThinkingQualityInfoClick,
-                            valueRange = 1f..4f,
-                            steps = 2,
+                            valueRange =
+                                ApiPreferences.MIN_THINKING_QUALITY_LEVEL.toFloat()..
+                                    ApiPreferences.MAX_THINKING_QUALITY_LEVEL.toFloat(),
+                            steps = 3,
                             decimalFormatPattern = "0"
                         )
                     }

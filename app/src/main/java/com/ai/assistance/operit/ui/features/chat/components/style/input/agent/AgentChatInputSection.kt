@@ -1782,7 +1782,10 @@ private fun AgentThinkingSliderSettingItem(
     var sliderValue by remember { mutableStateOf(value.toFloat()) }
 
     LaunchedEffect(value) {
-        sliderValue = value.toFloat().coerceIn(1f, 4f)
+        sliderValue = value.toFloat().coerceIn(
+            ApiPreferences.MIN_THINKING_QUALITY_LEVEL.toFloat(),
+            ApiPreferences.MAX_THINKING_QUALITY_LEVEL.toFloat()
+        )
     }
 
     Column(
@@ -1816,7 +1819,10 @@ private fun AgentThinkingSliderSettingItem(
             )
             Spacer(modifier = Modifier.weight(1f))
             Text(
-                text = sliderValue.roundToInt().coerceIn(1, 4).toString(),
+                text = sliderValue.roundToInt().coerceIn(
+                    ApiPreferences.MIN_THINKING_QUALITY_LEVEL,
+                    ApiPreferences.MAX_THINKING_QUALITY_LEVEL
+                ).toString(),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
@@ -1827,10 +1833,17 @@ private fun AgentThinkingSliderSettingItem(
             value = sliderValue,
             onValueChange = { sliderValue = it },
             onValueChangeFinished = {
-                onValueChange(sliderValue.roundToInt().coerceIn(1, 4))
+                onValueChange(
+                    sliderValue.roundToInt().coerceIn(
+                        ApiPreferences.MIN_THINKING_QUALITY_LEVEL,
+                        ApiPreferences.MAX_THINKING_QUALITY_LEVEL
+                    )
+                )
             },
-            valueRange = 1f..4f,
-            steps = 2,
+            valueRange =
+                ApiPreferences.MIN_THINKING_QUALITY_LEVEL.toFloat()..
+                    ApiPreferences.MAX_THINKING_QUALITY_LEVEL.toFloat(),
+            steps = 3,
             modifier = Modifier.fillMaxWidth(),
         )
     }

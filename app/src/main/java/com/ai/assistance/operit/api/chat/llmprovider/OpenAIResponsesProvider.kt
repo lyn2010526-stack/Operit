@@ -103,8 +103,9 @@ class OpenAIResponsesProvider(
         requestJson: JSONObject,
         enableThinking: Boolean
     ) {
+        val isOfficialGpt56 = usesOfficialGpt56Model()
         val reasoningObject = requestJson.optJSONObject("reasoning")
-        if (!enableThinking && reasoningObject == null) {
+        if (!enableThinking && reasoningObject == null && !isOfficialGpt56) {
             return
         }
 
@@ -119,13 +120,17 @@ class OpenAIResponsesProvider(
         val finalReasoningObject = reasoningObject ?: JSONObject()
         val existingEffort =
             finalReasoningObject.optString("effort", "").trim().takeIf { it.isNotEmpty() }
-        if (existingEffort == null && enableThinking) {
-            val effort = resolveResponsesReasoningEffort(context)
+        if (existingEffort == null) {
+            val effort = when {
+                enableThinking -> resolveResponsesReasoningEffort(context)
+                isOfficialGpt56 -> "none"
+                else -> null
+            }
             if (effort != null) {
                 finalReasoningObject.put("effort", effort)
                 AppLogger.d(
                     "OpenAIResponsesProvider",
-                    "Responses reasoning enabled via reasoning.effort=$effort"
+                    "Responses reasoning.effort=$effort"
                 )
             }
         } else {
@@ -137,7 +142,7 @@ class OpenAIResponsesProvider(
 
         val existingSummary =
             finalReasoningObject.optString("summary", "").trim().takeIf { it.isNotEmpty() }
-        if (existingSummary == null) {
+        if (enableThinking && existingSummary == null) {
             finalReasoningObject.put("summary", "auto")
             AppLogger.d(
                 "OpenAIResponsesProvider",
@@ -162,14 +167,22 @@ class OpenAIResponsesProvider(
             return null
         }
 
-        return when (qualityLevel.coerceIn(1, 4)) {
-            1 -> "low"
-            2 -> "medium"
-            3 -> "high"
-            4 -> "xhigh"
-            else -> null
+        return if (usesOfficialGpt56Model()) {
+            OpenAiGpt56Reasoning.effortForQualityLevel(qualityLevel)
+        } else {
+            when (qualityLevel.coerceIn(1, 4)) {
+                1 -> "low"
+                2 -> "medium"
+                3 -> "high"
+                4 -> "xhigh"
+                else -> null
+            }
         }
     }
+
+    private fun usesOfficialGpt56Model(): Boolean =
+        responsesProviderType == ApiProviderType.OPENAI_RESPONSES &&
+            OpenAiGpt56Reasoning.supports(modelName)
 
     private fun shouldAttachPromptCacheKey(): Boolean {
         return responsesProviderType == ApiProviderType.OPENAI_RESPONSES
