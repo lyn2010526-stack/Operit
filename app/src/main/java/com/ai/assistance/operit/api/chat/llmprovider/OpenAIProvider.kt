@@ -550,20 +550,20 @@ open class OpenAIProvider(
     ): RequestBody {
         val jsonString =
             createRequestBodyInternal(context, chatHistory, modelParameters, stream, availableTools, preserveThinkInHistory)
-        if (providerType != ApiProviderType.OPENAI || !OpenAiGpt56Reasoning.supports(modelName)) {
+        if (!OpenAiGpt56Reasoning.supportsChat(providerType, modelName)) {
             return createJsonRequestBody(jsonString)
         }
         val requestJson = JSONObject(jsonString)
-        applyOfficialGpt56ChatReasoning(context, requestJson, enableThinking)
+        applyGpt56ChatReasoning(context, requestJson, enableThinking)
         return createJsonRequestBody(requestJson.toString())
     }
 
-    private fun applyOfficialGpt56ChatReasoning(
+    private fun applyGpt56ChatReasoning(
         context: Context,
         requestJson: JSONObject,
         enableThinking: Boolean
     ) {
-        if (providerType != ApiProviderType.OPENAI || !OpenAiGpt56Reasoning.supports(modelName)) {
+        if (!OpenAiGpt56Reasoning.supportsChat(providerType, modelName)) {
             return
         }
 

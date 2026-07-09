@@ -1557,6 +1557,7 @@ class WebChatHttpBridge(
             currentConfigName = currentConfig?.name,
             currentModelIndex = currentModelIndex,
             currentModelName = currentModelName,
+            currentProviderType = currentConfig?.apiProviderType?.name.orEmpty(),
             lockedByCharacterCard = lockedCard != null,
             lockedCharacterCardId = lockedCard?.id,
             lockedCharacterCardName = lockedCard?.name,

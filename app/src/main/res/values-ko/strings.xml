@@ -2745,7 +2745,7 @@
     <string name="thinking_type_off">꺼짐</string>
     <string name="thinking_type_mode">모드</string>
     <string name="thinking_quality">사고 강도</string>
-    <string name="thinking_quality_desc">사고 모드에서만 적용됩니다. 5단계가 제공되며, 값이 높을수록 추론이 더 깊어집니다. 지원되는 단계는 모델에 따라 다를 수 있습니다.</string>
+    <string name="thinking_quality_desc">사고 모드에서만 적용됩니다. GPT-5.6 모델은 5단계를 사용하고 다른 모델은 기존 4단계를 유지합니다. 값이 높을수록 추론이 더 깊어집니다.</string>
     <string name="model_config">모델 구성</string>
     <string name="model_config_desc">여기에서 구성된 모델을 선택하거나 아래의 구성 관리를 클릭하여 모델을 생성 또는 수정합니다.</string>
     <string name="prompt">프롬프트</string>

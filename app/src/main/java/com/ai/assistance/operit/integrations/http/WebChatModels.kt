@@ -477,6 +477,8 @@ data class WebModelSelectorState(
     val currentModelIndex: Int,
     @SerialName("current_model_name")
     val currentModelName: String,
+    @SerialName("current_provider_type")
+    val currentProviderType: String,
     @SerialName("locked_by_character_card")
     val lockedByCharacterCard: Boolean,
     @SerialName("locked_character_card_id")

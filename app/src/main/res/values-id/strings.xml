@@ -2643,7 +2643,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="thinking_type_off">off</string>
     <string name="thinking_type_mode">mode</string>
     <string name="thinking_quality">Tingkat Pemikiran</string>
-    <string name="thinking_quality_desc">Hanya berlaku dalam mode berpikir. Tersedia lima tingkat; semakin tinggi nilainya, semakin dalam penalarannya. Tingkat yang didukung dapat berbeda menurut model.</string>
+    <string name="thinking_quality_desc">Hanya berlaku dalam mode berpikir. Model GPT-5.6 menggunakan lima tingkat; model lain tetap menggunakan empat tingkat sebelumnya. Nilai lebih tinggi berarti penalaran lebih dalam.</string>
     <string name="model_config">Konfigurasi Model</string>
     <string name="model_config_desc">Pilih model yang sudah dikonfigurasi di sini, atau ketuk kelola konfigurasi di bawah untuk membuat atau mengubah model</string>
     <string name="prompt">Prompt</string>

@@ -11,6 +11,10 @@ import {
   SaveIcon,
   TuneIcon
 } from '../../../../util/chatIcons';
+import {
+  clampThinkingQualityLevel,
+  getMaxThinkingQualityLevel
+} from '../../../../util/thinkingQuality';
 import type {
   WebInputSettingsState,
   WebModelSelectorConfig,
@@ -45,7 +49,7 @@ const INFO_COPY = {
   },
   thinkingQuality: {
     title: '思考程度',
-    description: '仅在思考模式下生效，共 5 挡，数值越高思考越深；不同模型支持的档位可能不同。'
+    description: '仅在思考模式下生效；GPT-5.6 系列使用 5 档，其它模型保持原有 4 档。'
   },
   maxMode: {
     title: 'Max模式',
@@ -475,6 +479,7 @@ function ClassicThinkingSettingsItem({
   onQualityInfoClick,
   onToggle,
   onToggleInfoClick,
+  maxQualityLevel,
   qualityLevel
 }: {
   enabled: boolean;
@@ -485,6 +490,7 @@ function ClassicThinkingSettingsItem({
   onQualityInfoClick: () => void;
   onToggle: () => void;
   onToggleInfoClick: () => void;
+  maxQualityLevel: number;
   qualityLevel: number;
 }) {
   return (
@@ -530,11 +536,11 @@ function ClassicThinkingSettingsItem({
                 }}
                 value={String(qualityLevel)}
               >
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
+                {Array.from({ length: maxQualityLevel }, (_, index) => index + 1).map((level) => (
+                  <option key={level} value={level}>
+                    {level}
+                  </option>
+                ))}
               </select>
             </ClassicSettingsRow>
           ) : null}
@@ -693,7 +699,14 @@ export function ClassicChatSettingsBar({
   const [showDisableSettingsDropdown, setShowDisableSettingsDropdown] = useState(false);
   const [infoPopupContent, setInfoPopupContent] = useState<InfoContent | null>(null);
   const thinkingEnabled = inputSettings?.enable_thinking_mode ?? false;
-  const thinkingQualityLevel = Math.max(1, Math.min(5, inputSettings?.thinking_quality_level ?? 1));
+  const maxThinkingQualityLevel = getMaxThinkingQualityLevel(
+    modelSelector?.current_provider_type,
+    modelSelector?.current_model_name
+  );
+  const thinkingQualityLevel = clampThinkingQualityLevel(
+    inputSettings?.thinking_quality_level ?? 1,
+    maxThinkingQualityLevel
+  );
   const enableMaxContextMode = inputSettings?.enable_max_context_mode ?? false;
   const enableMemoryAutoUpdate = inputSettings?.enable_memory_auto_update ?? false;
   const enableAutoRead = inputSettings?.enable_auto_read ?? false;
@@ -786,6 +799,7 @@ export function ClassicChatSettingsBar({
                     void onUpdateInputSettings({ enable_thinking_mode: !thinkingEnabled });
                   }}
                   onToggleInfoClick={() => openInfo(INFO_COPY.thinkingMode)}
+                  maxQualityLevel={maxThinkingQualityLevel}
                   qualityLevel={thinkingQualityLevel}
                 />
 

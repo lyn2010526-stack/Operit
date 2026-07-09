@@ -281,6 +281,7 @@ export interface WebModelSelectorState {
   current_config_name?: string | null;
   current_model_index: number;
   current_model_name: string;
+  current_provider_type: string;
   locked_by_character_card: boolean;
   locked_character_card_id?: string | null;
   locked_character_card_name?: string | null;

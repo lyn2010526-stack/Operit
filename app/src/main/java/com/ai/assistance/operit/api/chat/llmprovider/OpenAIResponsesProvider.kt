@@ -103,9 +103,9 @@ class OpenAIResponsesProvider(
         requestJson: JSONObject,
         enableThinking: Boolean
     ) {
-        val isOfficialGpt56 = usesOfficialGpt56Model()
+        val isGpt56 = usesGpt56Model()
         val reasoningObject = requestJson.optJSONObject("reasoning")
-        if (!enableThinking && reasoningObject == null && !isOfficialGpt56) {
+        if (!enableThinking && reasoningObject == null && !isGpt56) {
             return
         }
 
@@ -123,7 +123,7 @@ class OpenAIResponsesProvider(
         if (existingEffort == null) {
             val effort = when {
                 enableThinking -> resolveResponsesReasoningEffort(context)
-                isOfficialGpt56 -> "none"
+                isGpt56 -> "none"
                 else -> null
             }
             if (effort != null) {
@@ -167,7 +167,7 @@ class OpenAIResponsesProvider(
             return null
         }
 
-        return if (usesOfficialGpt56Model()) {
+        return if (usesGpt56Model()) {
             OpenAiGpt56Reasoning.effortForQualityLevel(qualityLevel)
         } else {
             when (qualityLevel.coerceIn(1, 4)) {
@@ -180,9 +180,8 @@ class OpenAIResponsesProvider(
         }
     }
 
-    private fun usesOfficialGpt56Model(): Boolean =
-        responsesProviderType == ApiProviderType.OPENAI_RESPONSES &&
-            OpenAiGpt56Reasoning.supports(modelName)
+    private fun usesGpt56Model(): Boolean =
+        OpenAiGpt56Reasoning.supportsResponses(responsesProviderType, modelName)
 
     private fun shouldAttachPromptCacheKey(): Boolean {
         return responsesProviderType == ApiProviderType.OPENAI_RESPONSES

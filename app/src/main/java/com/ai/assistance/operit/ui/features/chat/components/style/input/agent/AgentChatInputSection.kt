@@ -109,6 +109,7 @@ import androidx.compose.ui.window.PopupProperties
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.EnhancedAIService
 import com.ai.assistance.operit.api.chat.library.MemoryAutoSaveScheduler
+import com.ai.assistance.operit.api.chat.llmprovider.OpenAiGpt56Reasoning
 import com.ai.assistance.operit.core.tools.ToolProgressBus
 import com.ai.assistance.operit.data.model.AttachmentInfo
 import com.ai.assistance.operit.data.model.ChatMessage
@@ -1519,6 +1520,15 @@ private fun AgentModelSelectorPopup(
         )
     }
     val inputMenuTogglesBySlot = inputMenuToggles.groupBy { InputMenuToggleSlots.normalize(it.slot) }
+    val currentConfig = configSummaries.find { it.id == currentConfigMapping.configId }
+    val currentModelName = currentConfig?.let { config ->
+        val validIndex = getValidModelIndex(config.modelName, currentConfigMapping.modelIndex)
+        getModelByIndex(config.modelName, validIndex)
+    }.orEmpty()
+    val maxThinkingQualityLevel = OpenAiGpt56Reasoning.maxQualityLevel(
+        currentConfig?.apiProviderType,
+        currentModelName
+    )
 
     Popup(
         alignment = Alignment.TopStart,
@@ -1571,7 +1581,15 @@ private fun AgentModelSelectorPopup(
                         enableThinkingMode = enableThinkingMode,
                         onToggleThinkingMode = onToggleThinkingMode,
                         thinkingQualityLevel = thinkingQualityLevel,
-                        onThinkingQualityLevelChange = onThinkingQualityLevelChange,
+                        maxThinkingQualityLevel = maxThinkingQualityLevel,
+                        onThinkingQualityLevelChange = { level ->
+                            onThinkingQualityLevelChange(
+                                level.coerceIn(
+                                    ApiPreferences.MIN_THINKING_QUALITY_LEVEL,
+                                    maxThinkingQualityLevel
+                                )
+                            )
+                        },
                         thinkingSlotToggles = inputMenuTogglesBySlot[InputMenuToggleSlots.THINKING].orEmpty(),
                         expanded = showThinkingDropdown,
                         onExpandedChange = { showThinkingDropdown = it },
@@ -1671,6 +1689,7 @@ private fun AgentThinkingSettingsItem(
     enableThinkingMode: Boolean,
     onToggleThinkingMode: () -> Unit,
     thinkingQualityLevel: Int,
+    maxThinkingQualityLevel: Int,
     onThinkingQualityLevelChange: (Int) -> Unit,
     thinkingSlotToggles: List<InputMenuToggleDefinition>,
     expanded: Boolean,
@@ -1758,6 +1777,7 @@ private fun AgentThinkingSettingsItem(
                 AgentThinkingSliderSettingItem(
                     label = stringResource(R.string.thinking_quality),
                     value = thinkingQualityLevel,
+                    maxThinkingQualityLevel = maxThinkingQualityLevel,
                     onValueChange = onThinkingQualityLevelChange,
                     onInfoClick = onThinkingQualityInfoClick,
                 )
@@ -1776,15 +1796,16 @@ private fun AgentThinkingSettingsItem(
 private fun AgentThinkingSliderSettingItem(
     label: String,
     value: Int,
+    maxThinkingQualityLevel: Int,
     onValueChange: (Int) -> Unit,
     onInfoClick: () -> Unit,
 ) {
     var sliderValue by remember { mutableStateOf(value.toFloat()) }
 
-    LaunchedEffect(value) {
+    LaunchedEffect(value, maxThinkingQualityLevel) {
         sliderValue = value.toFloat().coerceIn(
             ApiPreferences.MIN_THINKING_QUALITY_LEVEL.toFloat(),
-            ApiPreferences.MAX_THINKING_QUALITY_LEVEL.toFloat()
+            maxThinkingQualityLevel.toFloat()
         )
     }
 
@@ -1821,7 +1842,7 @@ private fun AgentThinkingSliderSettingItem(
             Text(
                 text = sliderValue.roundToInt().coerceIn(
                     ApiPreferences.MIN_THINKING_QUALITY_LEVEL,
-                    ApiPreferences.MAX_THINKING_QUALITY_LEVEL
+                    maxThinkingQualityLevel
                 ).toString(),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
@@ -1836,14 +1857,15 @@ private fun AgentThinkingSliderSettingItem(
                 onValueChange(
                     sliderValue.roundToInt().coerceIn(
                         ApiPreferences.MIN_THINKING_QUALITY_LEVEL,
-                        ApiPreferences.MAX_THINKING_QUALITY_LEVEL
+                        maxThinkingQualityLevel
                     )
                 )
             },
             valueRange =
                 ApiPreferences.MIN_THINKING_QUALITY_LEVEL.toFloat()..
-                    ApiPreferences.MAX_THINKING_QUALITY_LEVEL.toFloat(),
-            steps = 3,
+                    maxThinkingQualityLevel.toFloat(),
+            steps = (maxThinkingQualityLevel -
+                ApiPreferences.MIN_THINKING_QUALITY_LEVEL - 1).coerceAtLeast(0),
             modifier = Modifier.fillMaxWidth(),
         )
     }

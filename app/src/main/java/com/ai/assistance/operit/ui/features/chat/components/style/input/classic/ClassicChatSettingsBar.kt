@@ -56,6 +56,7 @@ import androidx.compose.ui.window.PopupProperties
 import android.widget.Toast
 import com.ai.assistance.operit.api.chat.EnhancedAIService
 import com.ai.assistance.operit.api.chat.library.MemoryAutoSaveScheduler
+import com.ai.assistance.operit.api.chat.llmprovider.OpenAiGpt56Reasoning
 import com.ai.assistance.operit.data.model.CharacterCardChatModelBindingMode
 import com.ai.assistance.operit.data.model.CharacterCardMemoryProfileBindingMode
 import com.ai.assistance.operit.data.model.FunctionType
@@ -224,6 +225,10 @@ fun ClassicChatSettingsBar(
             val validIndex = getValidModelIndex(config.modelName, effectiveCurrentConfigMapping.modelIndex)
             getModelByIndex(config.modelName, validIndex).ifEmpty { stringResource(R.string.not_selected) }
         } ?: stringResource(R.string.not_selected)
+    val maxThinkingQualityLevel = OpenAiGpt56Reasoning.maxQualityLevel(
+        currentConfig?.apiProviderType,
+        currentModelName
+    )
     val toolPermissionText =
         when (if (enableTools) permissionLevel else PermissionLevel.FORBID) {
             PermissionLevel.FORBID -> stringResource(R.string.agent_menu_permission_disabled)
@@ -565,7 +570,15 @@ fun ClassicChatSettingsBar(
                                 enableThinkingMode = enableThinkingMode,
                                 onToggleThinkingMode = onToggleThinkingMode,
                                 thinkingQualityLevel = thinkingQualityLevel,
-                                onThinkingQualityLevelChange = onThinkingQualityLevelChange,
+                                maxThinkingQualityLevel = maxThinkingQualityLevel,
+                                onThinkingQualityLevelChange = { level ->
+                                    onThinkingQualityLevelChange(
+                                        level.coerceIn(
+                                            ApiPreferences.MIN_THINKING_QUALITY_LEVEL,
+                                            maxThinkingQualityLevel
+                                        )
+                                    )
+                                },
                                 thinkingSlotToggles = inputMenuTogglesBySlot[InputMenuToggleSlots.THINKING].orEmpty(),
                                 expanded = showThinkingDropdown,
                                 onExpandedChange = { showThinkingDropdown = it },
@@ -1205,6 +1218,7 @@ private fun ThinkingSettingsItem(
     enableThinkingMode: Boolean,
     onToggleThinkingMode: () -> Unit,
     thinkingQualityLevel: Int,
+    maxThinkingQualityLevel: Int,
     onThinkingQualityLevelChange: (Int) -> Unit,
     thinkingSlotToggles: List<InputMenuToggleDefinition>,
     expanded: Boolean,
@@ -1384,19 +1398,23 @@ private fun ThinkingSettingsItem(
                         SettingSliderItem(
                             label = stringResource(R.string.thinking_quality),
                             icon = Icons.Outlined.Speed,
-                            value = thinkingQualityLevel.toFloat(),
+                            value = thinkingQualityLevel.coerceIn(
+                                ApiPreferences.MIN_THINKING_QUALITY_LEVEL,
+                                maxThinkingQualityLevel
+                            ).toFloat(),
                             onValueChange = { newValue ->
                                 val intValue = newValue.toInt().coerceIn(
                                     ApiPreferences.MIN_THINKING_QUALITY_LEVEL,
-                                    ApiPreferences.MAX_THINKING_QUALITY_LEVEL
+                                    maxThinkingQualityLevel
                                 )
                                 onThinkingQualityLevelChange(intValue)
                             },
                             onInfoClick = onThinkingQualityInfoClick,
                             valueRange =
                                 ApiPreferences.MIN_THINKING_QUALITY_LEVEL.toFloat()..
-                                    ApiPreferences.MAX_THINKING_QUALITY_LEVEL.toFloat(),
-                            steps = 3,
+                                    maxThinkingQualityLevel.toFloat(),
+                            steps = (maxThinkingQualityLevel -
+                                ApiPreferences.MIN_THINKING_QUALITY_LEVEL - 1).coerceAtLeast(0),
                             decimalFormatPattern = "0"
                         )
                     }

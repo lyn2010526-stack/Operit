@@ -2596,7 +2596,7 @@
     <string name="thinking_type_off">off</string>
     <string name="thinking_type_mode">mode</string>
     <string name="thinking_quality">Tahap pemikiran</string>
-    <string name="thinking_quality_desc">Hanya berkesan dalam mod berfikir. Lima tahap tersedia; nilai yang lebih tinggi bermakna penaakulan lebih mendalam. Tahap yang disokong mungkin berbeza mengikut model.</string>
+    <string name="thinking_quality_desc">Hanya berkesan dalam mod berfikir. Model GPT-5.6 menggunakan lima tahap; model lain mengekalkan empat tahap asal. Nilai lebih tinggi bermakna penaakulan lebih mendalam.</string>
     <string name="model_config">Konfigurasi model</string>
     <string name="model_config_desc">Pilih model yang telah dikonfigurasi di sini, atau klik pengurusan konfigurasi di bawah untuk mencipta atau mengubah suai model</string>
     <string name="prompt">Kata kunci</string>
