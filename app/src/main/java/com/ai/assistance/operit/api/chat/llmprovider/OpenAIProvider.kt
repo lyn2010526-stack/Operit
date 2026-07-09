@@ -535,14 +535,6 @@ open class OpenAIProvider(
         return content
     }
 
-    private fun usesDeepseekV4ReasoningHistoryFormat(): Boolean {
-        if (useResponsesApi) return false
-
-        // Some OpenAI-compatible relays expose DeepSeek V4 models without using DeepseekProvider.
-        return Regex("(^|[^a-z0-9])deepseek-v4(\\.\\d+)?($|[^a-z0-9])", RegexOption.IGNORE_CASE)
-            .containsMatchIn(modelName)
-    }
-
     // 创建请求体
     protected open fun createRequestBody(
         context: Context,
@@ -639,17 +631,13 @@ open class OpenAIProvider(
             }
         }
 
-        val includeReasoningContent = usesDeepseekV4ReasoningHistoryFormat()
-        val effectivePreserveThinkInHistory = preserveThinkInHistory || includeReasoningContent
-
         // 使用新的核心逻辑构建消息并获取token计数
         val (messagesArray, tokenCount) = buildMessagesAndCountTokens(
             context,
             chatHistory,
             effectiveEnableToolCall,
             toolsJson,
-            effectivePreserveThinkInHistory,
-            includeReasoningContent
+            preserveThinkInHistory
         )
         jsonObject.put("messages", messagesArray)
 
@@ -868,8 +856,7 @@ open class OpenAIProvider(
         chatHistory: List<PromptTurn>,
         useToolCall: Boolean = false,
         toolsJson: String? = null,
-        preserveThinkInHistory: Boolean = false,
-        includeReasoningContent: Boolean = false
+        preserveThinkInHistory: Boolean = false
     ): Pair<JSONArray, Int> {
         val messagesArray = JSONArray()
         val providerReadyHistory = prepareHistoryForProvider(chatHistory, useToolCall)
@@ -884,7 +871,6 @@ open class OpenAIProvider(
         val effectiveHistory = providerReadyHistory
 
         var queuedAssistantToolText: String? = null
-        var queuedAssistantReasoning: String? = null
         var queuedToolCalls = JSONArray()
         val queuedToolCallIds = mutableListOf<String>()
         val openToolCallIds = mutableListOf<String>()
@@ -900,21 +886,8 @@ open class OpenAIProvider(
                 }
         }
 
-        fun appendQueuedAssistantReasoning(reasoningContent: String) {
-            if (reasoningContent.isBlank()) return
-            queuedAssistantReasoning =
-                if (queuedAssistantReasoning.isNullOrBlank()) {
-                    reasoningContent
-                } else {
-                    queuedAssistantReasoning + "\n" + reasoningContent
-                }
-        }
-
-        fun queueToolCalls(textContent: String, toolCalls: JSONArray, reasoningContent: String = "") {
+        fun queueToolCalls(textContent: String, toolCalls: JSONArray) {
             appendQueuedAssistantToolText(textContent)
-            if (includeReasoningContent) {
-                appendQueuedAssistantReasoning(reasoningContent)
-            }
             for (i in 0 until toolCalls.length()) {
                 val sourceToolCall = toolCalls.optJSONObject(i) ?: continue
                 val toolCall = JSONObject(sourceToolCall.toString())
@@ -939,15 +912,11 @@ open class OpenAIProvider(
             } else {
                 historyMessage.put("content", null)
             }
-            if (includeReasoningContent) {
-                historyMessage.put("reasoning_content", queuedAssistantReasoning.orEmpty())
-            }
             historyMessage.put("tool_calls", queuedToolCalls)
             messagesArray.put(historyMessage)
 
             openToolCallIds.addAll(queuedToolCallIds)
             queuedAssistantToolText = null
-            queuedAssistantReasoning = null
             queuedToolCalls = JSONArray()
             queuedToolCallIds.clear()
         }
@@ -1001,13 +970,7 @@ open class OpenAIProvider(
                         }
 
                         PromptTurnKind.ASSISTANT -> {
-                            val (assistantContent, reasoningContent) =
-                                if (includeReasoningContent) {
-                                    ChatUtils.extractThinkingContent(content)
-                                } else {
-                                    content to ""
-                                }
-                            val (textContent, parsedToolCalls) = parseXmlToolCalls(assistantContent)
+                            val (textContent, parsedToolCalls) = parseXmlToolCalls(content)
                             val toolCalls =
                                 if (parsedToolCalls != null) {
                                     wrapPackageToolCallsWithProxy(parsedToolCalls)
@@ -1019,21 +982,18 @@ open class OpenAIProvider(
                                 if (openToolCallIds.isNotEmpty()) {
                                     flushOpenToolCallsAsCancelled("assistant_tool_call_before_result")
                                 }
-                                queueToolCalls(textContent, toolCalls, reasoningContent)
+                                queueToolCalls(textContent, toolCalls)
                             } else {
                                 flushOpenToolCallsAsCancelled("assistant_boundary")
-                                val effectiveContent = if (assistantContent.isBlank()) {
+                                val effectiveContent = if (content.isBlank()) {
                                     AppLogger.d("AIService", "发现空的assistant消息，填充为[空消息]")
                                     "[Empty]"
                                 } else {
-                                    assistantContent
+                                    content
                                 }
                                 messagesArray.put(
                                     JSONObject().apply {
                                         put("role", "assistant")
-                                        if (includeReasoningContent) {
-                                            put("reasoning_content", reasoningContent)
-                                        }
                                         put("content", buildContentField(context, effectiveContent))
                                     }
                                 )
@@ -1060,9 +1020,6 @@ open class OpenAIProvider(
                                 messagesArray.put(
                                     JSONObject().apply {
                                         put("role", "assistant")
-                                        if (includeReasoningContent) {
-                                            put("reasoning_content", "")
-                                        }
                                         put("content", buildContentField(context, effectiveContent))
                                     }
                                 )

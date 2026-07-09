@@ -55,13 +55,26 @@ METADATA
         },
         {
             "name": "terminal_getscreen",
-            "description": { "zh": "获取当前终端会话可见屏幕内容（仅一屏，不包含历史滚动缓冲）。", "en": "Get the current visible screen content for the active terminal session (single screen only, no scrollback history)." },
-            "parameters": []
+            "description": { "zh": "获取目标终端会话可见屏幕内容（仅一屏，不包含历史滚动缓冲）。可通过 sessionId 指定会话；不传则使用当前对话的默认会话。", "en": "Get the visible screen content for the target terminal session (single screen only, no scrollback history). Pass sessionId to target a session; if omitted, uses the current chat's default session." },
+            "parameters": [
+                {
+                    "name": "sessionId",
+                    "description": { "zh": "可选目标会话ID。不传则使用当前对话的默认会话；无 chatId 时为 super_admin_default_session。", "en": "Optional target session ID. If omitted, uses the current chat's default session; without chatId it is super_admin_default_session." },
+                    "type": "string",
+                    "required": false
+                }
+            ]
         },
         {
             "name": "terminal_input",
-            "description": { "zh": "向当前终端会话写入输入。input 与 control 至少传一个。常见用法：先写 input，再写 control=enter 提交；control=ctrl 且 input=c 可发送 Ctrl+C。", "en": "Write input to the active terminal session. Provide at least one of input or control. Typical usage: send input first, then control=enter to submit; use control=ctrl with input=c for Ctrl+C." },
+            "description": { "zh": "向目标终端会话写入输入。可通过 sessionId 指定会话；不传则使用当前对话的默认会话。input 与 control 至少传一个。常见用法：先写 input，再写 control=enter 提交；control=ctrl 且 input=c 可发送 Ctrl+C。", "en": "Write input to the target terminal session. Pass sessionId to target a session; if omitted, uses the current chat's default session. Provide at least one of input or control. Typical usage: send input first, then control=enter to submit; use control=ctrl with input=c for Ctrl+C." },
             "parameters": [
+                {
+                    "name": "sessionId",
+                    "description": { "zh": "可选目标会话ID。不传则使用当前对话的默认会话；无 chatId 时为 super_admin_default_session。", "en": "Optional target session ID. If omitted, uses the current chat's default session; without chatId it is super_admin_default_session." },
+                    "type": "string",
+                    "required": false
+                },
                 {
                     "name": "input",
                     "description": { "zh": "写入终端的文本", "en": "Text to write to terminal." },
@@ -75,49 +88,16 @@ METADATA
                     "required": false
                 }
             ]
-        }
-    ],
-    "states": [
+        },
         {
-            "id": "android",
-            "condition": "platform.android",
-            "inheritTools": true,
-            "tools": [
+            "name": "shell",
+            "description": { "zh": "通过Shizuku/Root权限直接在Android系统中执行Shell命令。运行环境：直接访问Android系统，具有系统级权限，适用于需要操作Android系统底层的场景（如pm、am等系统命令）。", "en": "Execute shell commands directly on Android with Shizuku/Root. Environment: direct Android system access with system-level privileges, suitable for low-level commands such as pm/am." },
+            "parameters": [
                 {
-                    "name": "bash",
-                    "description": { "zh": "在 Ubuntu/Bash 终端会话中执行命令并收集输出结果。运行环境：完整的 Ubuntu 系统，已正确挂载 sdcard 和 storage 目录，可访问 Android 存储空间。会话按当前对话维护，上下文连贯。强烈建议每次都显式传 timeoutMs，避免命令卡住。前台未传 timeoutMs 时默认15秒；background=true 时不使用该默认超时。命令超时时会取消当前命令并保留终端会话。", "en": "Execute commands in an Ubuntu/Bash terminal session and collect output. Environment: full Ubuntu system with sdcard/storage mounted, allowing access to Android storage. The session is maintained per chat and preserves context. Strongly recommend explicitly passing timeoutMs every time to avoid hangs. Foreground mode defaults to 15s timeout when timeoutMs is omitted; background=true does not use this default timeout. When a command times out, the current command is cancelled and the terminal session is kept." },
-                    "parameters": [
-                        {
-                            "name": "command",
-                            "description": { "zh": "要执行的 Bash 命令", "en": "Bash command to execute." },
-                            "type": "string",
-                            "required": true
-                        },
-                        {
-                            "name": "background",
-                            "description": { "zh": "是否在后台运行命令,\"true\" 表示后台执行并立即返回,适合启动服务器等长时间运行的任务（AI 不会收到该命令的输出结果），\"false\" 或未提供则前台执行并等待并返回命令结果", "en": "Run command in background. 'true' runs in background and returns immediately (good for long-running tasks like servers; AI will not receive output). 'false' or omitted runs in foreground and returns the command result." },
-                            "type": "string",
-                            "required": false
-                        },
-                        {
-                            "name": "timeoutMs",
-                            "description": { "zh": "可选超时（毫秒，最低3000ms）。强烈建议显式传入；未传时前台默认15000ms，background=true时不使用默认超时。", "en": "Optional timeout (ms, minimum 3000ms). Strongly recommended to pass explicitly; if omitted, foreground defaults to 15000ms, and background=true does not use the default timeout." },
-                            "type": "string",
-                            "required": false
-                        }
-                    ]
-                },
-                {
-                    "name": "shell",
-                    "description": { "zh": "通过Shizuku/Root权限直接在Android系统中执行Shell命令。运行环境：直接访问Android系统，具有系统级权限，适用于需要操作Android系统底层的场景（如pm、am等系统命令）。", "en": "Execute shell commands directly on Android with Shizuku/Root. Environment: direct Android system access with system-level privileges, suitable for low-level commands such as pm/am." },
-                    "parameters": [
-                        {
-                            "name": "command",
-                            "description": { "zh": "要执行的Shell命令", "en": "Shell command to execute." },
-                            "type": "string",
-                            "required": true
-                        }
-                    ]
+                    "name": "command",
+                    "description": { "zh": "要执行的Shell命令", "en": "Shell command to execute." },
+                    "type": "string",
+                    "required": true
                 }
             ]
         }
@@ -365,11 +345,15 @@ const superAdmin = (function () {
     }
 
     /**
-     * 获取当前终端会话可见屏幕内容（仅一屏，不包含历史）
+     * 获取目标终端会话可见屏幕内容（仅一屏，不包含历史）
+     * @param sessionId - 可选会话ID；不传时使用当前对话的默认会话，无 chatId 时为 super_admin_default_session
      */
-    async function terminal_getscreen(_params: {} = {}): Promise<any> {
+    async function terminal_getscreen(params: { sessionId?: string } = {}): Promise<any> {
         try {
-            const session = await Tools.System.terminal.create(getDefaultTerminalSessionName());
+            const session =
+                params.sessionId
+                    ? { sessionId: params.sessionId }
+                    : await Tools.System.terminal.create(getDefaultTerminalSessionName());
             const sessionId = session.sessionId;
             const result = await Tools.System.terminal.screen(sessionId);
             return {
@@ -386,17 +370,21 @@ const superAdmin = (function () {
     }
 
     /**
-     * 向当前终端会话写入输入
+     * 向目标终端会话写入输入
+     * @param sessionId - 可选会话ID；不传时使用当前对话的默认会话，无 chatId 时为 super_admin_default_session
      * @param input - 文本输入
      * @param control - 控制键
      */
-    async function terminal_input(params: { input?: string, control?: string } = {}): Promise<any> {
+    async function terminal_input(params: { sessionId?: string, input?: string, control?: string } = {}): Promise<any> {
         try {
             if (params.input === undefined && params.control === undefined) {
                 throw new Error("input和control至少需要提供一个");
             }
 
-            const session = await Tools.System.terminal.create(getDefaultTerminalSessionName());
+            const session =
+                params.sessionId
+                    ? { sessionId: params.sessionId }
+                    : await Tools.System.terminal.create(getDefaultTerminalSessionName());
             const sessionId = session.sessionId;
             const result = await Tools.System.terminal.input(sessionId, {
                 input: params.input,
@@ -404,7 +392,7 @@ const superAdmin = (function () {
             });
 
             return {
-                sessionId: sessionId,
+                sessionId,
                 input: params.input,
                 control: params.control,
                 result: result?.value ?? String(result ?? "")
