@@ -45,19 +45,74 @@ jobs:
       - name: Download dependency archives from Google Drive
         run: |
           pip install gdown
-          gdown --folder --no-cookies "https://drive.google.com/drive/folders/1g-Q_i7cf6Ua4KX9ZM6V282EEZvTVVfF7" -O /tmp/deps
+          gdown --folder --no-cookies "https://drive.google.com/drive/folders/1g-Q_i7cf6Ua4KX9ZM6V282EEZvTVVfF7" -O /tmp/deps-raw
 
-          # gdown may nest files under the folder ID directory
-          DEPS_DIR=$(find /tmp/deps -maxdepth 2 -name "models.zip" -printf "%h" -quit 2>/dev/null || echo /tmp/deps)
+          DEPS_DIR=$(find /tmp/deps-raw -maxdepth 2 -name "models.zip" -printf "%h" -quit 2>/dev/null || echo /tmp/deps-raw)
           echo "Dependency files located in: $DEPS_DIR"
-          ls -la "$DEPS_DIR"
+          ls -laR "$DEPS_DIR"
 
-          echo "Extracting archives..."
-          mkdir -p app/src/main/assets/models app/src/main/assets/subpack app/src/main/jniLibs app/libs
-          unzip -q -o "$DEPS_DIR/models.zip" -d app/src/main/assets/models/ || echo "models.zip not found"
-          unzip -q -o "$DEPS_DIR/subpack.zip" -d app/src/main/assets/subpack/ || echo "subpack.zip not found"
-          unzip -q -o "$DEPS_DIR/jniLibs.zip" -d app/src/main/jniLibs/ || echo "jniLibs.zip not found"
-          unzip -q -o "$DEPS_DIR/libs.zip" -d app/libs/ || echo "libs.zip not found"
+          # Extract each zip to a tmp location first to inspect structure
+          mkdir -p /tmp/extract
+          for f in models subpack jniLibs libs; do
+            if [ -f "$DEPS_DIR/${f}.zip" ]; then
+              mkdir -p /tmp/extract/$f
+              unzip -q -o "$DEPS_DIR/${f}.zip" -d /tmp/extract/$f
+              echo "=== Contents of ${f}.zip ==="
+              ls -R /tmp/extract/$f | head -40
+            fi
+          done
+
+          # models -> app/src/main/assets/models/
+          mkdir -p app/src/main/assets/models
+          if [ -d /tmp/extract/models ]; then
+            # Check if zip contains "models/" subdir or flat files
+            if [ -d /tmp/extract/models/models ]; then
+              cp -r /tmp/extract/models/models/* app/src/main/assets/models/
+            else
+              cp -r /tmp/extract/models/* app/src/main/assets/models/
+            fi
+          fi
+
+          # subpack -> app/src/main/assets/subpack/
+          mkdir -p app/src/main/assets/subpack
+          if [ -d /tmp/extract/subpack ]; then
+            if [ -d /tmp/extract/subpack/subpack ]; then
+              cp -r /tmp/extract/subpack/subpack/* app/src/main/assets/subpack/
+            else
+              cp -r /tmp/extract/subpack/* app/src/main/assets/subpack/
+            fi
+          fi
+
+          # jniLibs -> app/src/main/jniLibs/
+          mkdir -p app/src/main/jniLibs
+          if [ -d /tmp/extract/jniLibs ]; then
+            # Handle various internal structures
+            if [ -d /tmp/extract/jniLibs/jniLibs ]; then
+              cp -r /tmp/extract/jniLibs/jniLibs/* app/src/main/jniLibs/
+            elif [ -d "/tmp/extract/jniLibs/app/src/main/jniLibs" ]; then
+              cp -r /tmp/extract/jniLibs/app/src/main/jniLibs/* app/src/main/jniLibs/
+            else
+              cp -r /tmp/extract/jniLibs/* app/src/main/jniLibs/
+            fi
+          fi
+
+          # libs -> app/libs/
+          mkdir -p app/libs
+          if [ -d /tmp/extract/libs ]; then
+            if [ -d /tmp/extract/libs/libs ]; then
+              cp -r /tmp/extract/libs/libs/* app/libs/
+            elif [ -d "/tmp/extract/libs/app/libs" ]; then
+              cp -r /tmp/extract/libs/app/libs/* app/libs/
+            else
+              cp -r /tmp/extract/libs/* app/libs/
+            fi
+          fi
+
+          # Verify final structure
+          echo "=== Final jniLibs structure ==="
+          ls -la app/src/main/jniLibs/
+          echo "=== Final libs structure ==="
+          ls -la app/libs/
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
