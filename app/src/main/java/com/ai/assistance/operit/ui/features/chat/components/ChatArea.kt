@@ -364,11 +364,14 @@ fun ChatArea(
                 Spacer(modifier = Modifier.height(4.dp))
             }
 
+            val timestampKeyOccurrences = mutableMapOf<Long, Int>()
             chatHistory.forEachIndexed { actualIndex, message ->
                 val isLastAiMessage = actualIndex == messagesCount - 1 && message.sender == "ai"
                 val shouldHide = shouldHideLastAiMessage && isLastAiMessage
+                val timestampKeyOccurrence = timestampKeyOccurrences[message.timestamp] ?: 0
+                timestampKeyOccurrences[message.timestamp] = timestampKeyOccurrence + 1
 
-                key(message.timestamp) {
+                key(message.timestamp, timestampKeyOccurrence) {
                     Box(
                         modifier =
                             Modifier.onGloballyPositioned { coordinates ->
