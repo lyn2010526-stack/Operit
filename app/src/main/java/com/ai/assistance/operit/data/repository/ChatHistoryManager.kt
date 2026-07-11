@@ -13,6 +13,7 @@ import com.ai.assistance.operit.data.db.AppDatabase
 import com.ai.assistance.operit.data.model.ChatEntity
 import com.ai.assistance.operit.data.model.ChatHistory
 import com.ai.assistance.operit.data.model.ChatMessage
+import com.ai.assistance.operit.data.model.ChatMessageTimestampAllocator
 import com.ai.assistance.operit.data.model.ChatMessageLocatorPreview
 import com.ai.assistance.operit.data.model.CharacterCardChatStats
 import com.ai.assistance.operit.data.model.CharacterGroupChatStats
@@ -114,6 +115,73 @@ class ChatHistoryManager private constructor(private val context: Context) {
         data class Legacy(val history: ChatHistory) : StreamImportedChat
     }
 
+    private fun nextUniqueMessageTimestamp(
+        timestamp: Long,
+        usedTimestamps: MutableSet<Long>,
+    ): Long {
+        var uniqueTimestamp = timestamp
+        while (!usedTimestamps.add(uniqueTimestamp)) {
+            uniqueTimestamp = ChatMessageTimestampAllocator.next(uniqueTimestamp + 1L)
+        }
+        ChatMessageTimestampAllocator.observe(uniqueTimestamp)
+        return uniqueTimestamp
+    }
+
+    private suspend fun ensureUniqueMessageEntityTimestamps(
+        chatId: String,
+        messageEntities: List<MessageEntity>,
+    ): List<MessageEntity> {
+        if (messageEntities.size < 2) {
+            messageEntities.firstOrNull()?.let { ChatMessageTimestampAllocator.observe(it.timestamp) }
+            return messageEntities
+        }
+
+        val usedTimestamps = mutableSetOf<Long>()
+        return messageEntities.map { messageEntity ->
+            val uniqueTimestamp =
+                nextUniqueMessageTimestamp(
+                    timestamp = messageEntity.timestamp,
+                    usedTimestamps = usedTimestamps,
+                )
+            if (uniqueTimestamp == messageEntity.timestamp) {
+                messageEntity
+            } else {
+                val updatedMessageEntity =
+                    messageEntity.copy(
+                        timestamp = uniqueTimestamp,
+                        selectedVariantIndex = 0,
+                    )
+                messageDao.updateMessage(updatedMessageEntity)
+                AppLogger.w(
+                    TAG,
+                    "修正重复消息 timestamp: chatId=$chatId, messageId=${messageEntity.messageId}, old=${messageEntity.timestamp}, new=$uniqueTimestamp",
+                )
+                updatedMessageEntity
+            }
+        }
+    }
+
+    private fun ensureUniqueChatMessageTimestamps(messages: List<ChatMessage>): List<ChatMessage> {
+        if (messages.size < 2) {
+            messages.firstOrNull()?.let { ChatMessageTimestampAllocator.observe(it.timestamp) }
+            return messages
+        }
+
+        val usedTimestamps = mutableSetOf<Long>()
+        return messages.map { message ->
+            val uniqueTimestamp =
+                nextUniqueMessageTimestamp(
+                    timestamp = message.timestamp,
+                    usedTimestamps = usedTimestamps,
+                )
+            if (uniqueTimestamp == message.timestamp) {
+                message
+            } else {
+                message.copy(timestamp = uniqueTimestamp)
+            }
+        }
+    }
+
     private fun hydrateMessages(
         messageEntities: List<MessageEntity>,
         variants: List<MessageVariantEntity>,
@@ -143,9 +211,14 @@ class ChatHistoryManager private constructor(private val context: Context) {
         if (messageEntities.isEmpty()) {
             return emptyList()
         }
-        val visibleTimestamps = messageEntities.map { it.timestamp }
+        val uniqueMessageEntities =
+            ensureUniqueMessageEntityTimestamps(
+                chatId = chatId,
+                messageEntities = messageEntities,
+            )
+        val visibleTimestamps = uniqueMessageEntities.map { it.timestamp }
         val variants = messageVariantDao.getVariantsForMessages(chatId, visibleTimestamps)
-        return hydrateMessages(messageEntities, variants)
+        return hydrateMessages(uniqueMessageEntities, variants)
     }
 
     private suspend fun loadDisplayHistory(chatHistory: ChatHistory): ChatHistory {
@@ -561,8 +634,9 @@ class ChatHistoryManager private constructor(private val context: Context) {
                 messageVariantDao.deleteAllVariantsForChat(chatEntity.id)
 
                 // 批量插入所有消息
+                val uniqueMessages = ensureUniqueChatMessageTimestamps(history.messages)
                 val messageEntities =
-                    history.messages.mapIndexed { index, message ->
+                    uniqueMessages.mapIndexed { index, message ->
                         val archivedVariants =
                             variantsByTimestamp[message.timestamp]
                                 .orEmpty()
@@ -583,7 +657,7 @@ class ChatHistoryManager private constructor(private val context: Context) {
                 messageDao.insertMessages(messageEntities)
 
                 val variantEntities =
-                    history.messages.flatMap { message ->
+                    uniqueMessages.flatMap { message ->
                         variantsByTimestamp[message.timestamp]
                             .orEmpty()
                             .sortedBy { it.variantIndex }
@@ -645,11 +719,26 @@ class ChatHistoryManager private constructor(private val context: Context) {
     }
 
     private suspend fun persistMessageLocked(chatId: String, messageToPersist: ChatMessage): ChatMessage {
+        val usedTimestamps =
+            messageDao
+                .getMessagesForChat(chatId)
+                .mapTo(mutableSetOf()) { it.timestamp }
+        val uniqueTimestamp =
+            nextUniqueMessageTimestamp(
+                timestamp = messageToPersist.timestamp,
+                usedTimestamps = usedTimestamps,
+            )
+        val uniqueMessage =
+            if (uniqueTimestamp == messageToPersist.timestamp) {
+                messageToPersist
+            } else {
+                messageToPersist.copy(timestamp = uniqueTimestamp)
+            }
         val nextOrderIndex = (messageDao.getMaxOrderIndex(chatId) ?: -1) + 1
         val messageEntity =
             MessageEntity.fromChatMessage(
                 chatId = chatId,
-                message = messageToPersist,
+                message = uniqueMessage,
                 orderIndex = nextOrderIndex,
             )
         messageDao.insertMessage(messageEntity)
@@ -665,7 +754,7 @@ class ChatHistoryManager private constructor(private val context: Context) {
             )
         }
 
-        return messageToPersist
+        return uniqueMessage
     }
 
     private suspend fun resolveAnchoredMessageLocked(
@@ -1141,26 +1230,7 @@ class ChatHistoryManager private constructor(private val context: Context) {
                     }
                 } else {
                     // 如果找不到现有消息，则插入新消息（避免在同一互斥锁下递归调用 addMessage）
-                    val nextOrderIndex = (messageDao.getMaxOrderIndex(chatId) ?: -1) + 1
-                    val messageEntity = MessageEntity.fromChatMessage(
-                        chatId = chatId,
-                        message = message,
-                        orderIndex = nextOrderIndex,
-                    )
-                    messageDao.insertMessage(messageEntity)
-
-                    // 更新聊天元数据
-                    val chat = chatDao.getChatById(chatId)
-                    if (chat != null) {
-                        chatDao.updateChatMetadata(
-                            chatId = chatId,
-                            title = chat.title,
-                            timestamp = System.currentTimeMillis(),
-                            inputTokens = chat.inputTokens,
-                            outputTokens = chat.outputTokens,
-                            currentWindowSize = chat.currentWindowSize
-                        )
-                    }
+                    persistMessageLocked(chatId, message)
                 }
             } catch (e: Exception) {
                 throw e
