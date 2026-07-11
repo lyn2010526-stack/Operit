@@ -104,6 +104,10 @@ import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.model.ActivePrompt
 import com.ai.assistance.operit.ui.features.chat.viewmodel.ChatHistoryDisplayMode
 import com.ai.assistance.operit.ui.theme.getTextColorForBackground
+import com.ai.assistance.operit.ui.theme.IosBlue
+import com.ai.assistance.operit.ui.theme.IosReceivedBubbleDark
+import com.ai.assistance.operit.ui.theme.IosReceivedBubbleLight
+import androidx.compose.foundation.isSystemInDarkTheme
 import com.ai.assistance.operit.plugins.chatview.ChatViewEvent
 import com.ai.assistance.operit.plugins.chatview.ChatViewHookParams
 import com.ai.assistance.operit.plugins.chatview.ChatViewHookPluginRegistry
@@ -581,8 +585,8 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
         }
     }
 
-    val defaultUserMessageColor = MaterialTheme.colorScheme.primaryContainer
-    val defaultAiMessageColor = MaterialTheme.colorScheme.surface
+    val defaultUserMessageColor = IosBlue
+    val defaultAiMessageColor = if (isSystemInDarkTheme()) IosReceivedBubbleDark else IosReceivedBubbleLight
     val cursorCustomUserMessageColor = cursorUserBubbleColorValue?.let(::Color)
     val bubbleCustomUserMessageColor = bubbleUserBubbleColorValue?.let(::Color)
     val bubbleCustomAiMessageColor = bubbleAiBubbleColorValue?.let(::Color)

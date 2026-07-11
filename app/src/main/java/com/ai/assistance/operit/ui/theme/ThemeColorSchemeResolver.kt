@@ -16,13 +16,21 @@ import com.ai.assistance.operit.data.preferences.UserPreferencesManager.Companio
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager.Companion.ON_COLOR_MODE_LIGHT
 
 private val ResolvedDarkColorScheme =
-    darkColorScheme(primary = Purple80, secondary = PurpleGrey80, tertiary = Pink80)
+    darkColorScheme(
+        primary = IosBlue, secondary = IosGreen, tertiary = IosOrange,
+        background = IosDarkSystemBackground, onBackground = IosDarkPrimaryLabel,
+        surface = IosDarkSystemBackground, onSurface = IosDarkPrimaryLabel,
+        surfaceVariant = IosDarkSecondarySystemBackground, onSurfaceVariant = IosDarkSecondaryLabel,
+        outline = IosDarkSeparator
+    )
 
 private val ResolvedLightColorScheme =
     lightColorScheme(
-        primary = Purple40,
-        secondary = PurpleGrey40,
-        tertiary = Pink40
+        primary = IosBlue, secondary = IosGreen, tertiary = IosOrange,
+        background = IosLightSystemBackground, onBackground = IosLightPrimaryLabel,
+        surface = IosLightSystemBackground, onSurface = IosLightPrimaryLabel,
+        surfaceVariant = IosLightSecondarySystemBackground, onSurfaceVariant = IosLightSecondaryLabel,
+        outline = IosLightSeparator
     )
 
 fun resolveThemeColorScheme(

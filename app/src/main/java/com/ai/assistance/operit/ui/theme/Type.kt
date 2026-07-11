@@ -13,34 +13,114 @@ import androidx.core.net.toFile
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import java.io.File
 
-// Set of Material typography styles to start with
 val Typography = Typography(
-    bodyLarge = TextStyle(
+    displayLarge = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Light,
+        fontSize = 34.sp,
+        lineHeight = 41.sp,
+        letterSpacing = 0.37.sp
+    ),
+    displayMedium = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
+        fontSize = 28.sp,
+        lineHeight = 34.sp,
+        letterSpacing = 0.36.sp
     ),
-    titleLarge = TextStyle(
+    displaySmall = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Normal,
         fontSize = 22.sp,
         lineHeight = 28.sp,
+        letterSpacing = 0.35.sp
+    ),
+    headlineLarge = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 20.sp,
+        lineHeight = 25.sp,
+        letterSpacing = 0.38.sp
+    ),
+    headlineMedium = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 17.sp,
+        lineHeight = 22.sp,
+        letterSpacing = -0.41.sp
+    ),
+    headlineSmall = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 16.sp,
+        lineHeight = 21.sp,
+        letterSpacing = -0.32.sp
+    ),
+    titleLarge = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Normal,
+        fontSize = 17.sp,
+        lineHeight = 22.sp,
+        letterSpacing = -0.41.sp
+    ),
+    titleMedium = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Normal,
+        fontSize = 16.sp,
+        lineHeight = 21.sp,
+        letterSpacing = -0.32.sp
+    ),
+    titleSmall = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Normal,
+        fontSize = 15.sp,
+        lineHeight = 20.sp,
+        letterSpacing = -0.24.sp
+    ),
+    bodyLarge = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Normal,
+        fontSize = 17.sp,
+        lineHeight = 22.sp,
+        letterSpacing = -0.41.sp
+    ),
+    bodyMedium = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Normal,
+        fontSize = 15.sp,
+        lineHeight = 20.sp,
+        letterSpacing = -0.24.sp
+    ),
+    bodySmall = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Normal,
+        fontSize = 13.sp,
+        lineHeight = 18.sp,
+        letterSpacing = -0.08.sp
+    ),
+    labelLarge = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Medium,
+        fontSize = 17.sp,
+        lineHeight = 22.sp,
+        letterSpacing = -0.41.sp
+    ),
+    labelMedium = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Medium,
+        fontSize = 12.sp,
+        lineHeight = 16.sp,
         letterSpacing = 0.sp
     ),
     labelSmall = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Medium,
         fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
+        lineHeight = 13.sp,
+        letterSpacing = 0.07.sp
     )
 )
 
-/**
- * 根据系统字体名称获取 FontFamily
- */
 fun getSystemFontFamily(systemFontName: String): FontFamily {
     return when (systemFontName) {
         UserPreferencesManager.SYSTEM_FONT_SERIF -> FontFamily.Serif
@@ -51,23 +131,19 @@ fun getSystemFontFamily(systemFontName: String): FontFamily {
     }
 }
 
-/**
- * 从文件路径加载自定义字体
- */
 fun loadCustomFontFamily(context: Context, fontPath: String): FontFamily? {
     return try {
-        // - 修复了 file:// URI 路径无法被 File 正确解析的问题
         val file = if (fontPath.startsWith("file://")) {
             Uri.parse(fontPath).toFile()
         } else {
             File(fontPath)
         }
-        
+
         if (!file.exists()) {
             AppLogger.e("TypeKt", "Font file does not exist: $fontPath")
             return null
         }
-        
+
         FontFamily(
             Font(file)
         )
@@ -77,9 +153,6 @@ fun loadCustomFontFamily(context: Context, fontPath: String): FontFamily? {
     }
 }
 
-/**
- * 根据配置解析可选 FontFamily
- */
 fun resolveConfiguredFontFamily(
     context: Context,
     useCustomFont: Boolean,
@@ -101,9 +174,6 @@ fun resolveConfiguredFontFamily(
     }
 }
 
-/**
- * 将指定 FontFamily 应用于整套 Typography
- */
 fun applyFontFamilyToTypography(
     baseTypography: Typography,
     fontFamily: FontFamily?,
@@ -131,9 +201,6 @@ fun applyFontFamilyToTypography(
     )
 }
 
-/**
- * 根据用户设置创建自定义 Typography
- */
 fun createCustomTypography(
     context: Context,
     useCustomFont: Boolean,
@@ -142,7 +209,6 @@ fun createCustomTypography(
     customFontPath: String?,
     fontScale: Float
 ): Typography {
-    // 如果不使用自定义字体且字体大小为默认值，则直接返回默认Typography
     if (!useCustomFont && fontScale == 1.0f) {
         return Typography
     }
@@ -157,14 +223,12 @@ fun createCustomTypography(
         ) ?: FontFamily.Default
     val baseTypography = applyFontFamilyToTypography(Typography, fontFamily)
 
-    // Helper to apply scale. It will be applied to every style.
     fun TextStyle.withScale(): TextStyle = if (fontScale != 1.0f) {
         copy(fontSize = fontSize * fontScale, lineHeight = lineHeight * fontScale)
     } else {
         this
     }
 
-    // 创建带有自定义字体的 Typography
     return Typography(
         displayLarge = baseTypography.displayLarge.withScale(),
         displayMedium = baseTypography.displayMedium.withScale(),

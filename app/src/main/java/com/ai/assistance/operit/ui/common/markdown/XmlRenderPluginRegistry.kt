@@ -78,12 +78,10 @@ private fun buildXmlRenderComposeDslExecutionContextKey(
 ): String {
     val containerKey = containerPackageName.trim().ifBlank { "default" }
     val screenKey = screenPath.trim().ifBlank { "default" }
-    val instanceKey = renderInstanceKey?.toString()?.trim()
-    return listOfNotNull(
+    return listOf(
         "toolpkg_xml_render",
         containerKey,
-        screenKey,
-        instanceKey?.takeIf { it.isNotBlank() }
+        screenKey
     ).joinToString(":")
 }
 
@@ -223,11 +221,11 @@ object XmlRenderPluginRegistry {
         val packageManager = remember(result.containerPackageName) {
             PackageManager.getInstance(context, AIToolHandler.getInstance(context))
         }
-        val executionContextKey = remember(result.containerPackageName, result.screenPath, renderInstanceKey) {
+        val executionContextKey = remember(result.containerPackageName, result.screenPath) {
             buildXmlRenderComposeDslExecutionContextKey(
                 containerPackageName = result.containerPackageName,
                 screenPath = result.screenPath,
-                renderInstanceKey = renderInstanceKey
+                renderInstanceKey = null
             )
         }
         val jsEngine = remember(packageManager, executionContextKey) {

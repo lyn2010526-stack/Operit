@@ -1,0 +1,82 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platforms;android-34 build-tools;34.0.0 ndk;25.1.8937393'
+
+      - name: Download dependency archives from Google Drive
+        run: |
+          pip install gdown
+          gdown --folder --no-cookies "https://drive.google.com/drive/folders/1g-Q_i7cf6Ua4KX9ZM6V282EEZvTVVfF7" -O /tmp/deps
+
+          # gdown may nest files under the folder ID directory
+          DEPS_DIR=$(find /tmp/deps -maxdepth 2 -name "models.zip" -printf "%h" -quit 2>/dev/null || echo /tmp/deps)
+          echo "Dependency files located in: $DEPS_DIR"
+          ls -la "$DEPS_DIR"
+
+          echo "Extracting archives..."
+          mkdir -p app/src/main/assets/models app/src/main/assets/subpack app/src/main/jniLibs app/libs
+          unzip -q -o "$DEPS_DIR/models.zip" -d app/src/main/assets/models/ || echo "models.zip not found"
+          unzip -q -o "$DEPS_DIR/subpack.zip" -d app/src/main/assets/subpack/ || echo "subpack.zip not found"
+          unzip -q -o "$DEPS_DIR/jniLibs.zip" -d app/src/main/jniLibs/ || echo "jniLibs.zip not found"
+          unzip -q -o "$DEPS_DIR/libs.zip" -d app/libs/ || echo "libs.zip not found"
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build web-chat frontend
+        run: |
+          npm install
+          npm --prefix web-chat install
+          npm run build:webchat
+
+      - name: Sync example packages
+        run: python3 sync_example_packages.py
+
+      - name: Build APK
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: operit-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 7

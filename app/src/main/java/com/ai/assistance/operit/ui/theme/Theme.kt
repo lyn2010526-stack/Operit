@@ -66,25 +66,72 @@ import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import io.github.fletchmckee.liquid.liquefiable
 import io.github.fletchmckee.liquid.rememberLiquidState
 
-private val DarkColorScheme =
-        darkColorScheme(primary = Purple80, secondary = PurpleGrey80, tertiary = Pink80)
+private val IosLightColorScheme =
+    lightColorScheme(
+        primary = IosBlue,
+        onPrimary = Color.White,
+        primaryContainer = IosBlue.copy(alpha = 0.12f),
+        onPrimaryContainer = IosBlue,
+        secondary = IosGreen,
+        onSecondary = Color.White,
+        secondaryContainer = IosGreen.copy(alpha = 0.12f),
+        onSecondaryContainer = IosGreen,
+        tertiary = IosOrange,
+        onTertiary = Color.White,
+        tertiaryContainer = IosOrange.copy(alpha = 0.12f),
+        onTertiaryContainer = IosOrange,
+        error = IosRed,
+        onError = Color.White,
+        errorContainer = IosRed.copy(alpha = 0.12f),
+        onErrorContainer = IosRed,
+        background = IosLightSystemBackground,
+        onBackground = IosLightPrimaryLabel,
+        surface = IosLightSystemBackground,
+        onSurface = IosLightPrimaryLabel,
+        surfaceVariant = IosLightSecondarySystemBackground,
+        onSurfaceVariant = IosLightSecondaryLabel,
+        outline = IosLightSeparator,
+        outlineVariant = IosLightOpaqueSeparator,
+        inverseSurface = IosDarkSystemBackground,
+        inverseOnSurface = IosDarkPrimaryLabel,
+        inversePrimary = IosBlue.copy(alpha = 0.7f),
+        surfaceTint = IosBlue.copy(alpha = 0.08f),
+    )
 
-private val LightColorScheme =
-        lightColorScheme(
-                primary = Purple40,
-                secondary = PurpleGrey40,
-                tertiary = Pink40,
+private val IosDarkColorScheme =
+    darkColorScheme(
+        primary = IosBlue,
+        onPrimary = Color.White,
+        primaryContainer = IosBlue.copy(alpha = 0.16f),
+        onPrimaryContainer = Color(0xFFA8D4FF),
+        secondary = IosGreen,
+        onSecondary = Color.White,
+        secondaryContainer = IosGreen.copy(alpha = 0.16f),
+        onSecondaryContainer = Color(0xFFA8F0B0),
+        tertiary = IosOrange,
+        onTertiary = Color.White,
+        tertiaryContainer = IosOrange.copy(alpha = 0.16f),
+        onTertiaryContainer = Color(0xFFFFD6A0),
+        error = IosRed,
+        onError = Color.White,
+        errorContainer = IosRed.copy(alpha = 0.16f),
+        onErrorContainer = Color(0xFFFFB4AB),
+        background = IosDarkSystemBackground,
+        onBackground = IosDarkPrimaryLabel,
+        surface = IosDarkSystemBackground,
+        onSurface = IosDarkPrimaryLabel,
+        surfaceVariant = IosDarkSecondarySystemBackground,
+        onSurfaceVariant = IosDarkSecondaryLabel,
+        outline = IosDarkSeparator,
+        outlineVariant = IosDarkOpaqueSeparator,
+        inverseSurface = IosLightSystemBackground,
+        inverseOnSurface = IosLightPrimaryLabel,
+        inversePrimary = IosBlue.copy(alpha = 0.7f),
+        surfaceTint = IosBlue.copy(alpha = 0.12f),
+    )
 
-                /* Other default colors to override
-                background = Color(0xFFFFFBFE),
-                surface = Color(0xFFFFFBFE),
-                onPrimary = Color.White,
-                onSecondary = Color.White,
-                onTertiary = Color.White,
-                onBackground = Color(0xFF1C1B1F),
-                onSurface = Color(0xFF1C1B1F),
-                */
-                )
+private val DarkColorScheme = IosDarkColorScheme
+private val LightColorScheme = IosLightColorScheme
 
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
@@ -94,55 +141,48 @@ fun OperitTheme(content: @Composable () -> Unit) {
     val preferencesManager = remember { UserPreferencesManager.getInstance(context) }
     val coroutineScope = rememberCoroutineScope()
 
-    // 获取主题设置
     val useSystemTheme by preferencesManager.useSystemTheme.collectAsState(initial = true)
     val themeMode by
-            preferencesManager.themeMode.collectAsState(
-                    initial = UserPreferencesManager.THEME_MODE_LIGHT
-            )
+        preferencesManager.themeMode.collectAsState(
+            initial = UserPreferencesManager.THEME_MODE_LIGHT
+        )
     val useCustomColors by preferencesManager.useCustomColors.collectAsState(initial = false)
     val customPrimaryColor by preferencesManager.customPrimaryColor.collectAsState(initial = null)
     val customSecondaryColor by
-            preferencesManager.customSecondaryColor.collectAsState(initial = null)
+        preferencesManager.customSecondaryColor.collectAsState(initial = null)
     val onColorMode by preferencesManager.onColorMode.collectAsState(initial = ON_COLOR_MODE_AUTO)
 
-    // 获取背景图片设置
     val useBackgroundImage by preferencesManager.useBackgroundImage.collectAsState(initial = false)
     val backgroundImageUri by preferencesManager.backgroundImageUri.collectAsState(initial = null)
     val backgroundImageOpacity by
-            preferencesManager.backgroundImageOpacity.collectAsState(initial = 0.3f)
+        preferencesManager.backgroundImageOpacity.collectAsState(initial = 0.3f)
 
-    // 获取背景媒体类型和视频设置
     val backgroundMediaType by
-            preferencesManager.backgroundMediaType.collectAsState(
-                    initial = UserPreferencesManager.MEDIA_TYPE_IMAGE
-            )
+        preferencesManager.backgroundMediaType.collectAsState(
+            initial = UserPreferencesManager.MEDIA_TYPE_IMAGE
+        )
     val videoBackgroundMuted by
-            preferencesManager.videoBackgroundMuted.collectAsState(initial = true)
+        preferencesManager.videoBackgroundMuted.collectAsState(initial = true)
     val videoBackgroundLoop by preferencesManager.videoBackgroundLoop.collectAsState(initial = true)
 
-    // 获取状态栏颜色设置
     val useCustomStatusBarColor by
-            preferencesManager.useCustomStatusBarColor.collectAsState(initial = false)
+        preferencesManager.useCustomStatusBarColor.collectAsState(initial = false)
     val customStatusBarColorValue by
-            preferencesManager.customStatusBarColor.collectAsState(initial = null)
+        preferencesManager.customStatusBarColor.collectAsState(initial = null)
     val statusBarTransparent by
-            preferencesManager.statusBarTransparent.collectAsState(initial = false)
+        preferencesManager.statusBarTransparent.collectAsState(initial = false)
     val statusBarHidden by
-            preferencesManager.statusBarHidden.collectAsState(initial = false)
+        preferencesManager.statusBarHidden.collectAsState(initial = false)
 
-    // 获取背景模糊设置
     val useBackgroundBlur by preferencesManager.useBackgroundBlur.collectAsState(initial = false)
     val backgroundBlurRadius by preferencesManager.backgroundBlurRadius.collectAsState(initial = 10f)
 
-    // 获取字体设置
     val useCustomFont by preferencesManager.useCustomFont.collectAsState(initial = false)
     val fontType by preferencesManager.fontType.collectAsState(initial = UserPreferencesManager.FONT_TYPE_SYSTEM)
     val systemFontName by preferencesManager.systemFontName.collectAsState(initial = UserPreferencesManager.SYSTEM_FONT_DEFAULT)
     val customFontPath by preferencesManager.customFontPath.collectAsState(initial = null)
     val fontScale by preferencesManager.fontScale.collectAsState(initial = 1.0f)
 
-    // 创建自定义 Typography
     val customTypography = remember(useCustomFont, fontType, systemFontName, customFontPath, fontScale) {
         createCustomTypography(
             context = context,
@@ -154,30 +194,26 @@ fun OperitTheme(content: @Composable () -> Unit) {
         )
     }
 
-    // 确定是否使用暗色主题
     val systemDarkTheme = isSystemInDarkTheme()
     val darkTheme =
-            if (useSystemTheme) {
-                systemDarkTheme
-            } else {
-                themeMode == UserPreferencesManager.THEME_MODE_DARK
-            }
+        if (useSystemTheme) {
+            systemDarkTheme
+        } else {
+            themeMode == UserPreferencesManager.THEME_MODE_DARK
+        }
 
-    // Dynamic color is available on Android 12+
     val dynamicColor = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
-    // 基础主题色调
     var colorScheme =
-            when {
-                dynamicColor -> {
-                    if (darkTheme) dynamicDarkColorScheme(context)
-                    else dynamicLightColorScheme(context)
-                }
-                darkTheme -> DarkColorScheme
-                else -> LightColorScheme
+        when {
+            dynamicColor -> {
+                if (darkTheme) dynamicDarkColorScheme(context)
+                else dynamicLightColorScheme(context)
             }
+            darkTheme -> IosDarkColorScheme
+            else -> IosLightColorScheme
+        }
 
-    // 应用自定义颜色和文本颜色
     if (useCustomColors) {
         customPrimaryColor?.let { primaryArgb ->
             val primary = Color(primaryArgb)
@@ -185,9 +221,9 @@ fun OperitTheme(content: @Composable () -> Unit) {
 
             colorScheme = if (darkTheme) {
                 generateDarkColorScheme(primary, secondary, onColorMode)
-                    } else {
+            } else {
                 generateLightColorScheme(primary, secondary, onColorMode)
-                    }
+            }
         }
     }
 
@@ -198,137 +234,112 @@ fun OperitTheme(content: @Composable () -> Unit) {
             val insetsController = window.decorView.let { decorView ->
                 androidx.core.view.WindowCompat.getInsetsController(window, decorView)
             }
-            
-            // 始终保持沉浸式模式，让Compose处理状态栏背景
+
             WindowCompat.setDecorFitsSystemWindows(window, false)
 
-            // 隐藏或显示状态栏
             if (statusBarHidden) {
-                // 隐藏状态栏
                 insetsController?.hide(WindowInsetsCompat.Type.statusBars())
-                insetsController?.systemBarsBehavior = 
+                insetsController?.systemBarsBehavior =
                     WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             } else {
-                // 显示状态栏
                 insetsController?.show(WindowInsetsCompat.Type.statusBars())
-                
-                // 状态栏颜色和图标颜色控制
+
                 val statusBarColor = when {
                     statusBarTransparent -> Color.Transparent.toArgb()
-                    useBackgroundImage && backgroundImageUri != null -> Color.Transparent.toArgb()  // 有背景时透明
+                    useBackgroundImage && backgroundImageUri != null -> Color.Transparent.toArgb()
                     useCustomStatusBarColor && customStatusBarColorValue != null -> customStatusBarColorValue!!.toInt()
-                    else -> colorScheme.primary.toArgb()
+                    else -> if (darkTheme) IosDarkSystemBackground.toArgb() else IosLightSystemBackground.toArgb()
                 }
                 window.statusBarColor = statusBarColor
-
-                // 根据状态栏背景色动态设置状态栏图标颜色
-                // isAppearanceLightStatusBars = true 表示图标为深色（适用于浅色背景）
-                // isAppearanceLightStatusBars = false 表示图标为浅色（适用于深色背景）
                 insetsController?.isAppearanceLightStatusBars = !isColorLight(Color(statusBarColor))
             }
-            
-            // 设置导航栏颜色（底部小白条所在的区域）
-            // 在有背景图片时，让导航栏透明
+
             if (useBackgroundImage && backgroundImageUri != null) {
-                // 关键：禁用导航栏对比度强制模式（Android 10+）
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     window.isNavigationBarContrastEnforced = false
                 }
-                // 设置为完全透明
                 window.navigationBarColor = android.graphics.Color.TRANSPARENT
-                // 根据主题设置导航栏图标颜色
                 insetsController?.isAppearanceLightNavigationBars = !darkTheme
             } else {
-                // 没有背景时使用软件背景色作为导航栏背景色
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     window.isNavigationBarContrastEnforced = true
                 }
-                window.navigationBarColor = colorScheme.background.toArgb()
-                // 根据导航栏背景色动态设置导航栏图标颜色
-                // isAppearanceLightNavigationBars = true 表示图标为深色（适用于浅色背景）
-                // isAppearanceLightNavigationBars = false 表示图标为浅色（适用于深色背景）
-                insetsController?.isAppearanceLightNavigationBars = !isColorLight(colorScheme.background)
+                val navColor = if (darkTheme) IosDarkSystemBackground else IosLightTabBarBackground
+                window.navigationBarColor = navColor.toArgb()
+                insetsController?.isAppearanceLightNavigationBars = !isColorLight(navColor)
             }
         }
     }
 
-    // 视频播放器状态
     val exoPlayer =
-            remember(
-                    useBackgroundImage,
-                    backgroundImageUri,
-                    backgroundMediaType,
-                    videoBackgroundLoop,
-                    videoBackgroundMuted
+        remember(
+            useBackgroundImage,
+            backgroundImageUri,
+            backgroundMediaType,
+            videoBackgroundLoop,
+            videoBackgroundMuted
+        ) {
+            if (useBackgroundImage &&
+                backgroundImageUri != null &&
+                backgroundMediaType == UserPreferencesManager.MEDIA_TYPE_VIDEO
             ) {
-                if (useBackgroundImage &&
-                                backgroundImageUri != null &&
-                                backgroundMediaType == UserPreferencesManager.MEDIA_TYPE_VIDEO
-                ) {
-                    ExoPlayer.Builder(context)
-                            // Add memory optimizations
-                            .setLoadControl(
-                                    DefaultLoadControl.Builder()
-                                            .setBufferDurationsMs(
-                                                    5000,  // 最小缓冲时间，减少到5秒
-                                                    10000, // 最大缓冲时间，减少到10秒
-                                                    500,   // 回放所需的最小缓冲
-                                                    1000   // 重新缓冲后回放所需的最小缓冲
-                                            )
-                                            .setTargetBufferBytes(5 * 1024 * 1024) // 将缓冲限制为5MB
-                                            .setPrioritizeTimeOverSizeThresholds(true)
-                                            .build()
+                ExoPlayer.Builder(context)
+                    .setLoadControl(
+                        DefaultLoadControl.Builder()
+                            .setBufferDurationsMs(
+                                5000,
+                                10000,
+                                500,
+                                1000
                             )
+                            .setTargetBufferBytes(5 * 1024 * 1024)
+                            .setPrioritizeTimeOverSizeThresholds(true)
                             .build()
-                            .apply {
-                                // 设置循环播放
-                                repeatMode =
-                                        if (videoBackgroundLoop) Player.REPEAT_MODE_ALL
-                                        else Player.REPEAT_MODE_OFF
-                                // 设置静音
-                                volume = if (videoBackgroundMuted) 0f else 1f
-                                playWhenReady = true
+                    )
+                    .build()
+                    .apply {
+                        repeatMode =
+                            if (videoBackgroundLoop) Player.REPEAT_MODE_ALL
+                            else Player.REPEAT_MODE_OFF
+                        volume = if (videoBackgroundMuted) 0f else 1f
+                        playWhenReady = true
 
-                                // 加载视频
-                                try {
-                                    val mediaItem = MediaItem.Builder()
-                                        .setUri(Uri.parse(backgroundImageUri))
-                                        .build()
-                                    setMediaItem(mediaItem)
-                                    prepare()
-                                } catch (e: Exception) {
-                                    AppLogger.e(
-                                            "OperitTheme",
-                                            "Error loading video background: ${e.message}",
-                                            e
-                                    )
-                                    // Fallback to no background if video can't be loaded
-                                    coroutineScope.launch {
-                                        preferencesManager.saveThemeSettings(
-                                                useBackgroundImage = false
-                                        )
-                                    }
-                                }
+                        try {
+                            val mediaItem = MediaItem.Builder()
+                                .setUri(Uri.parse(backgroundImageUri))
+                                .build()
+                            setMediaItem(mediaItem)
+                            prepare()
+                        } catch (e: Exception) {
+                            AppLogger.e(
+                                "OperitTheme",
+                                "Error loading video background: ${e.message}",
+                                e
+                            )
+                            coroutineScope.launch {
+                                preferencesManager.saveThemeSettings(
+                                    useBackgroundImage = false
+                                )
                             }
-                } else {
-                    null
-                }
+                        }
+                    }
+            } else {
+                null
             }
+        }
 
-    // 释放ExoPlayer资源
-    DisposableEffect(key1 = Unit) { 
-        onDispose { 
+    DisposableEffect(key1 = Unit) {
+        onDispose {
             try {
                 exoPlayer?.stop()
                 exoPlayer?.clearMediaItems()
-                exoPlayer?.release() 
+                exoPlayer?.release()
             } catch (e: Exception) {
-                AppLogger.e("OperitTheme", "ExoPlayer释放错误", e)
+                AppLogger.e("OperitTheme", "ExoPlayer release error", e)
             }
-        } 
+        }
     }
 
-    // 监听应用生命周期，控制视频播放
     if (exoPlayer != null) {
         val lifecycleOwner = LocalLifecycleOwner.current
         DisposableEffect(lifecycleOwner) {
@@ -349,7 +360,6 @@ fun OperitTheme(content: @Composable () -> Unit) {
         }
     }
 
-    // 应用主题和自定义背景
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val liquidGlassBackdrop = rememberLayerBackdrop()
         val waterGlassState = if (isWaterGlassSupported()) rememberLiquidState() else null
@@ -535,9 +545,8 @@ fun OperitTheme(content: @Composable () -> Unit) {
     }
 }
 
-/** 为亮色主题生成基于主色的完整颜色方案 */
 private fun generateLightColorScheme(
-        primaryColor: Color,
+    primaryColor: Color,
     secondaryColor: Color,
     onColorMode: String
 ): ColorScheme {
@@ -557,26 +566,23 @@ private fun generateLightColorScheme(
     val secondaryContainer = lightenColor(secondaryColor, 0.7f)
     val onSecondaryContainer = getContrastingTextColor(secondaryContainer)
 
-    // Return a complete color scheme, ensuring onSurface and onSurfaceVariant are consistent
-    return LightColorScheme.copy(
-            primary = primaryColor,
-            onPrimary = onPrimary,
-            primaryContainer = primaryContainer,
-            onPrimaryContainer = onPrimaryContainer,
-            secondary = secondaryColor,
-            onSecondary = onSecondary,
-            secondaryContainer = secondaryContainer,
-            onSecondaryContainer = onSecondaryContainer,
-        // Ensure other colors are consistent with a light theme
+    return IosLightColorScheme.copy(
+        primary = primaryColor,
+        onPrimary = onPrimary,
+        primaryContainer = primaryContainer,
+        onPrimaryContainer = onPrimaryContainer,
+        secondary = secondaryColor,
+        onSecondary = onSecondary,
+        secondaryContainer = secondaryContainer,
+        onSecondaryContainer = onSecondaryContainer,
         onSurface = Color.Black,
         onSurfaceVariant = Color.Black.copy(alpha = 0.7f),
         onBackground = Color.Black
     )
 }
 
-/** 为暗色主题生成基于主色的完整颜色方案 */
 private fun generateDarkColorScheme(
-        primaryColor: Color,
+    primaryColor: Color,
     secondaryColor: Color,
     onColorMode: String
 ): ColorScheme {
@@ -599,46 +605,37 @@ private fun generateDarkColorScheme(
     val secondaryContainer = darkenColor(secondaryColor, 0.3f)
     val onSecondaryContainer = getContrastingTextColor(secondaryContainer, forceLight = true)
 
-    // Return a complete color scheme, ensuring onSurface and onSurfaceVariant are consistent
-    return DarkColorScheme.copy(
-            primary = adjustedPrimaryColor,
-            onPrimary = onPrimary,
-            primaryContainer = primaryContainer,
-            onPrimaryContainer = onPrimaryContainer,
-            secondary = adjustedSecondaryColor,
-            onSecondary = onSecondary,
-            secondaryContainer = secondaryContainer,
-            onSecondaryContainer = onSecondaryContainer,
-        // Ensure other colors are consistent with a dark theme
+    return IosDarkColorScheme.copy(
+        primary = adjustedPrimaryColor,
+        onPrimary = onPrimary,
+        primaryContainer = primaryContainer,
+        onPrimaryContainer = onPrimaryContainer,
+        secondary = adjustedSecondaryColor,
+        onSecondary = onSecondary,
+        secondaryContainer = secondaryContainer,
+        onSecondaryContainer = onSecondaryContainer,
         onSurface = Color.White,
         onSurfaceVariant = Color.White.copy(alpha = 0.7f),
         onBackground = Color.White
     )
 }
 
-/** Add a new helper function to determine appropriate text color based on background color */
 private fun getContrastingTextColor(
-        backgroundColor: Color,
-        forceDark: Boolean = false,
-        forceLight: Boolean = false
+    backgroundColor: Color,
+    forceDark: Boolean = false,
+    forceLight: Boolean = false
 ): Color {
-    // If forced, return the specified color
     if (forceDark) return Color.Black
     if (forceLight) return Color.White
 
-    // Calculate color contrast and return appropriate color
-    // Using luminance formula from Web Content Accessibility Guidelines (WCAG)
     val luminance =
-            0.299 * backgroundColor.red +
-                    0.587 * backgroundColor.green +
-                    0.114 * backgroundColor.blue
+        0.299 * backgroundColor.red +
+            0.587 * backgroundColor.green +
+            0.114 * backgroundColor.blue
 
-    // Use a threshold of 0.5 for deciding between white and black text
-    // Higher threshold (e.g., 0.6) would use white text more often
     return if (luminance > 0.5) Color.Black else Color.White
 }
 
-/** 使颜色变亮 */
 private fun lightenColor(color: Color, factor: Float): Color {
     val r = color.red + (1f - color.red) * factor
     val g = color.green + (1f - color.green) * factor
@@ -646,7 +643,6 @@ private fun lightenColor(color: Color, factor: Float): Color {
     return Color(r, g, b, color.alpha)
 }
 
-/** 使颜色变暗 */
 private fun darkenColor(color: Color, factor: Float): Color {
     val r = color.red * (1f - factor)
     val g = color.green * (1f - factor)
@@ -654,22 +650,11 @@ private fun darkenColor(color: Color, factor: Float): Color {
     return Color(r, g, b, color.alpha)
 }
 
-/** 混合两种颜色 */
-private fun blendColors(color1: Color, color2: Color, ratio: Float): Color {
-    val r = color1.red * (1 - ratio) + color2.red * ratio
-    val g = color1.green * (1 - ratio) + color2.green * ratio
-    val b = color1.blue * (1 - ratio) + color2.blue * ratio
-    return Color(r, g, b)
-}
-
-/** 判断颜色是否较浅 */
 private fun isColorLight(color: Color): Boolean {
-    // 计算颜色亮度 (0.0-1.0)
     val luminance = 0.299 * color.red + 0.587 * color.green + 0.114 * color.blue
     return luminance > 0.5
 }
 
-/** 判断颜色是否较深 */
 private fun isColorDark(color: Color): Boolean {
     return !isColorLight(color)
 }
