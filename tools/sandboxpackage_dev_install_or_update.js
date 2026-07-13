@@ -117,7 +117,7 @@ const SandboxPackageDevInstaller = (function () {
 
   function syncBuiltInPackageExamples() {
     const File = Java.type("java.io.File");
-    const AssetCopyUtils = Java.type("com.ai.assistance.operit.util.AssetCopyUtils");
+    const AssetCopyUtils = Java.type("com.cynosure.operit.util.AssetCopyUtils");
     const context = Java.getApplicationContext();
     const outputDir = new File(EXAMPLE_PACKAGES_DIR);
     const copiedFiles = [];

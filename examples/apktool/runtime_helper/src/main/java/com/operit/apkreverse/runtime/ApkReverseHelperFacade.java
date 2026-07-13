@@ -227,7 +227,7 @@ public final class ApkReverseHelperFacade {
     }
 
     private static Object invokeKeyStoreHelper(String methodName, Class<?>[] parameterTypes, Object[] args) throws Exception {
-        Class<?> helperClass = Class.forName("com.ai.assistance.operit.core.subpack.KeyStoreHelper");
+        Class<?> helperClass = Class.forName("com.cynosure.operit.core.subpack.KeyStoreHelper");
         Method method = helperClass.getMethod(methodName, parameterTypes);
         return method.invoke(null, args);
     }

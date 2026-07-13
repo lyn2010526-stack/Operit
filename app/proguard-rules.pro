@@ -24,16 +24,16 @@
 -keep class rikka.shizuku.** { *; }
 
 # 保留 Shower 相关 Binder IPC 类型，确保与 shower-server.jar 的类名保持一致
--keep class com.ai.assistance.shower.ShowerBinderContainer { *; }
--keep class com.ai.assistance.shower.IShowerService { *; }
--keep class com.ai.assistance.shower.IShowerVideoSink { *; }
+-keep class com.cynosure.shower.ShowerBinderContainer { *; }
+-keep class com.cynosure.shower.IShowerService { *; }
+-keep class com.cynosure.shower.IShowerVideoSink { *; }
 
 # 保留自定义的 UserService 类及 AIDL 接口
--keep class com.ai.assistance.operit.core.tools.system.shizuku.OperitShizukuShellUserService { *; }
--keep class com.ai.assistance.operit.core.tools.system.shizuku.IOperitShizukuShellService { *; }
--keep interface com.ai.assistance.operit.core.tools.system.shizuku.IOperitShizukuShellService { *; }
--keep class com.ai.assistance.operit.core.tools.system.shizuku.IOperitShizukuShellCallback { *; }
--keep interface com.ai.assistance.operit.core.tools.system.shizuku.IOperitShizukuShellCallback { *; }
+-keep class com.cynosure.operit.core.tools.system.shizuku.OperitShizukuShellUserService { *; }
+-keep class com.cynosure.operit.core.tools.system.shizuku.IOperitShizukuShellService { *; }
+-keep interface com.cynosure.operit.core.tools.system.shizuku.IOperitShizukuShellService { *; }
+-keep class com.cynosure.operit.core.tools.system.shizuku.IOperitShizukuShellCallback { *; }
+-keep interface com.cynosure.operit.core.tools.system.shizuku.IOperitShizukuShellCallback { *; }
 -keep class com.lyneon.cytoidinfoquerier.service.FileService { *; }
 -keep class com.lyneon.cytoidinfoquerier.IFileService { *; }
 -keep interface com.lyneon.cytoidinfoquerier.IFileService { *; }
@@ -44,7 +44,7 @@
 }
 
 # 保留 QuickJS 反射绑定对象
--keep class com.ai.assistance.operit.core.tools.javascript.JsEngine$JsToolCallInterface { *; }
+-keep class com.cynosure.operit.core.tools.javascript.JsEngine$JsToolCallInterface { *; }
 
 # Rules to suppress R8 warnings about missing classes
 # SVG Support

@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.ai.assistance.mmd"
+    namespace = "com.cynosure.mmd"
     compileSdk = 36
 
     defaultConfig {

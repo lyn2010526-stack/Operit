@@ -1,9 +1,9 @@
 import type { JavaBridgeValue } from "../../types/java-bridge";
 
-const PromptTurnClass = Java.type("com.ai.assistance.operit.core.chat.hooks.PromptTurn");
-const PromptTurnKindClass = Java.type("com.ai.assistance.operit.core.chat.hooks.PromptTurnKind");
+const PromptTurnClass = Java.type("com.cynosure.operit.core.chat.hooks.PromptTurn");
+const PromptTurnKindClass = Java.type("com.cynosure.operit.core.chat.hooks.PromptTurnKind");
 const SendMessageOptionsClass = Java.type(
-  "com.ai.assistance.operit.api.chat.EnhancedAIService$SendMessageOptions"
+  "com.cynosure.operit.api.chat.EnhancedAIService$SendMessageOptions"
 );
 
 export type PromptTurn = ToolPkg.PromptTurn;

@@ -13,7 +13,7 @@ const qqbot_common_1 = require("./qqbot_common");
 const qqbot_state_1 = require("./qqbot_state");
 const qqbot_service_1 = require("./qqbot_service");
 const qqbot_openapi_1 = require("./qqbot_openapi");
-const WaifuMessageProcessor = Java.com.ai.assistance.operit.util.WaifuMessageProcessor;
+const WaifuMessageProcessor = Java.com.cynosure.operit.util.WaifuMessageProcessor;
 const DEFAULT_ASSISTANT_INSTRUCTION = "";
 const DEFAULT_AUTO_REPLY_CONFIG = {
     enabled: false,

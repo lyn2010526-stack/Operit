@@ -35,7 +35,7 @@ import {
 } from "./qqbot_service";
 import { buildSendMessageBody, fetchAccessToken, openApiRequest } from "./qqbot_openapi";
 
-const WaifuMessageProcessor = Java.com.ai.assistance.operit.util.WaifuMessageProcessor;
+const WaifuMessageProcessor = Java.com.cynosure.operit.util.WaifuMessageProcessor;
 
 const DEFAULT_ASSISTANT_INSTRUCTION = "";
 

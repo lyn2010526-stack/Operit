@@ -72,7 +72,7 @@
 
     <queries>
         <!-- 允许查询和绑定到无障碍服务提供者应用 -->
-        <package android:name="com.ai.assistance.operit.provider" />
+        <package android:name="com.cynosure.operit.provider" />
     </queries>
 
     <application
@@ -297,7 +297,7 @@
             android:process=":repair"
             android:theme="@style/Theme.Operit">
             <intent-filter>
-                <action android:name="com.ai.assistance.operit.action.OPEN_DATA_RECOVERY" />
+                <action android:name="com.cynosure.operit.action.OPEN_DATA_RECOVERY" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
@@ -357,7 +357,7 @@
             android:name=".core.tools.javascript.ScriptExecutionReceiver"
             android:exported="true">
             <intent-filter>
-                <action android:name="com.ai.assistance.operit.EXECUTE_JS" />
+                <action android:name="com.cynosure.operit.EXECUTE_JS" />
             </intent-filter>
         </receiver>
 
@@ -365,7 +365,7 @@
             android:name=".core.tools.packTool.ToolPkgDebugInstallReceiver"
             android:exported="true">
             <intent-filter>
-                <action android:name="com.ai.assistance.operit.DEBUG_INSTALL_TOOLPKG" />
+                <action android:name="com.cynosure.operit.DEBUG_INSTALL_TOOLPKG" />
             </intent-filter>
         </receiver>
 
@@ -373,7 +373,7 @@
             android:name=".core.tools.packTool.PackageDebugRefreshReceiver"
             android:exported="true">
             <intent-filter>
-                <action android:name="com.ai.assistance.operit.DEBUG_REFRESH_PACKAGES" />
+                <action android:name="com.cynosure.operit.DEBUG_REFRESH_PACKAGES" />
             </intent-filter>
         </receiver>
 
@@ -381,7 +381,7 @@
             android:name=".core.tools.packTool.ToolPkgComposeDslDebugDumpReceiver"
             android:exported="true">
             <intent-filter>
-                <action android:name="com.ai.assistance.operit.DUMP_COMPOSE_DSL_UI" />
+                <action android:name="com.cynosure.operit.DUMP_COMPOSE_DSL_UI" />
             </intent-filter>
         </receiver>
 
@@ -389,7 +389,7 @@
             android:name=".integrations.intent.ExternalChatReceiver"
             android:exported="true">
             <intent-filter>
-                <action android:name="com.ai.assistance.operit.EXTERNAL_CHAT" />
+                <action android:name="com.cynosure.operit.EXTERNAL_CHAT" />
             </intent-filter>
         </receiver>
 
@@ -445,7 +445,7 @@
             android:name=".core.tools.agent.ShowerBinderReceiver"
             android:exported="true">
             <intent-filter>
-                <action android:name="com.ai.assistance.operit.action.SHOWER_BINDER_READY" />
+                <action android:name="com.cynosure.operit.action.SHOWER_BINDER_READY" />
             </intent-filter>
         </receiver>
         
@@ -466,7 +466,7 @@
             android:exported="true"
             android:enabled="true">
             <intent-filter>
-                <action android:name="com.ai.assistance.operit.TRIGGER_WORKFLOW" />
+                <action android:name="com.cynosure.operit.TRIGGER_WORKFLOW" />
                 <action android:name="com.twofortyfouram.locale.intent.action.FIRE_SETTING" />
             </intent-filter>
         </receiver>

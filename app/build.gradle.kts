@@ -21,7 +21,7 @@ if (localPropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.ai.assistance.operit"
+    namespace = "com.cynosure.operit"
     compileSdk = 36
 
     signingConfigs {
@@ -52,7 +52,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.ai.assistance.operit"
+        applicationId = "com.cynosure.operit"
         minSdk = 26
         targetSdk = 34
         versionCode = 44
@@ -209,8 +209,9 @@ dependencies {
     implementation("com.google.android.filament:gltfio-android:1.69.2")
     implementation("com.google.android.filament:filament-utils-android:1.69.2")
     implementation(libs.androidx.ui.graphics.android)
-    // Vendored binary dependencies live in app/libs, including ffmpeg-kit and its Java-side deps.
+    // Keep optional vendored binaries separate from the reproducible FFmpegKit dependency below.
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.aar", "*.jar"))))
+    implementation(libs.ffmpeg.kit.full)
     implementation(libs.androidx.runtime.android)
     implementation(libs.androidx.ui.text.android)
     implementation(libs.androidx.animation.android)

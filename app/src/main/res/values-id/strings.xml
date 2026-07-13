@@ -839,7 +839,7 @@
     <string name="copy_path">Salin Jalur</string>
     <string name="path_copied_to_clipboard">Jalur telah disalin ke papan klip</string>
     <string name="open_file_manager">Buka Pengelola File</string>
-    <string name="navigate_to_external_files">Silakan navigasi ke direktori Android/data/com.ai.assistance.operit/files/packages</string>
+    <string name="navigate_to_external_files">Silakan navigasi ke direktori Android/data/com.cynosure.operit/files/packages</string>
     <string name="package_js_only">Hanya mendukung file JavaScript (.js) dan ToolPkg (.toolpkg)</string>
     <string name="pkg_toolpkg_subpackages">Subpaket ToolPkg</string>
     <string name="pkg_toolpkg_version">Versi: %1$s</string>

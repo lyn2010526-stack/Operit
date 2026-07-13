@@ -63,14 +63,14 @@
 import "../../../types/quickjs-runtime.js";
 import type { JavaBridgeValue } from "../../../types/java-bridge";
 
-const EnhancedAIService = Java.com.ai.assistance.operit.api.chat.EnhancedAIService;
-const FunctionType = Java.com.ai.assistance.operit.data.model.FunctionType;
-const SystemPromptConfig = Java.com.ai.assistance.operit.core.config.SystemPromptConfig;
+const EnhancedAIService = Java.com.cynosure.operit.api.chat.EnhancedAIService;
+const FunctionType = Java.com.cynosure.operit.data.model.FunctionType;
+const SystemPromptConfig = Java.com.cynosure.operit.core.config.SystemPromptConfig;
 const Unit = Java.kotlin.Unit;
-const PromptTurnClass = Java.type("com.ai.assistance.operit.core.chat.hooks.PromptTurn");
-const PromptTurnKindClass = Java.type("com.ai.assistance.operit.core.chat.hooks.PromptTurnKind");
+const PromptTurnClass = Java.type("com.cynosure.operit.core.chat.hooks.PromptTurn");
+const PromptTurnKindClass = Java.type("com.cynosure.operit.core.chat.hooks.PromptTurnKind");
 const SendMessageOptionsClass = Java.type(
-  "com.ai.assistance.operit.api.chat.EnhancedAIService$SendMessageOptions"
+  "com.cynosure.operit.api.chat.EnhancedAIService$SendMessageOptions"
 );
 
 const TOOL_TAG = /<tool\b[\s\S]*?<\/tool>/gi;

@@ -8,8 +8,8 @@ import {
   setExtraInfoInjectionEnabled,
 } from "./shared";
 
-const EnhancedAIService = Java.com.ai.assistance.operit.api.chat.EnhancedAIService;
-const InputProcessingStateBase = "com.ai.assistance.operit.data.model.InputProcessingState$";
+const EnhancedAIService = Java.com.cynosure.operit.api.chat.EnhancedAIService;
+const InputProcessingStateBase = "com.cynosure.operit.data.model.InputProcessingState$";
 
 function resolveInjectionStatusText(): string {
   const locale = typeof getLang === "function" ? String(getLang() || "").trim().toLowerCase() : "";

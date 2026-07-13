@@ -2,7 +2,7 @@ import type { ExecutionGraph, TaskNode } from "./plan-models";
 import { topologicalSort, validateExecutionGraph } from "./plan-parser";
 import { resolveDeepSearchI18n } from "../i18n";
 import { createSendMessageOptions, type PromptTurn } from "../prompt-turns";
-const SystemPromptConfig = Java.com.ai.assistance.operit.core.config.SystemPromptConfig;
+const SystemPromptConfig = Java.com.cynosure.operit.core.config.SystemPromptConfig;
 const Unit = Java.kotlin.Unit;
 
 const TAG = "TaskExecutor";

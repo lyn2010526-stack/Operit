@@ -5,13 +5,13 @@ plugins {
 }
 
 android {
-    namespace = "com.ai.assistance.shower"
+    namespace = "com.cynosure.shower"
     compileSdk {
         version = release(36)
     }
 
     defaultConfig {
-        applicationId = "com.ai.assistance.shower"
+        applicationId = "com.cynosure.shower"
         minSdk = 24
         targetSdk = 36
         versionCode = 1

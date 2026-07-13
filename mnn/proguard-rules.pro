@@ -11,10 +11,10 @@
 }
 
 # Keep MNN classes
--keep class com.ai.assistance.mnn.** { *; }
+-keep class com.cynosure.mnn.** { *; }
 
 # Keep MNN enums
--keepclassmembers enum com.ai.assistance.mnn.** {
+-keepclassmembers enum com.cynosure.mnn.** {
     public static **[] values();
     public static ** valueOf(java.lang.String);
 }

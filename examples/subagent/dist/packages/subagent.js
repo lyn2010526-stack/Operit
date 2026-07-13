@@ -64,13 +64,13 @@ exports.subagent_run = subagent_run;
 }
 */
 require("../../../types/quickjs-runtime.js");
-const EnhancedAIService = Java.com.ai.assistance.operit.api.chat.EnhancedAIService;
-const FunctionType = Java.com.ai.assistance.operit.data.model.FunctionType;
-const SystemPromptConfig = Java.com.ai.assistance.operit.core.config.SystemPromptConfig;
+const EnhancedAIService = Java.com.cynosure.operit.api.chat.EnhancedAIService;
+const FunctionType = Java.com.cynosure.operit.data.model.FunctionType;
+const SystemPromptConfig = Java.com.cynosure.operit.core.config.SystemPromptConfig;
 const Unit = Java.kotlin.Unit;
-const PromptTurnClass = Java.type("com.ai.assistance.operit.core.chat.hooks.PromptTurn");
-const PromptTurnKindClass = Java.type("com.ai.assistance.operit.core.chat.hooks.PromptTurnKind");
-const SendMessageOptionsClass = Java.type("com.ai.assistance.operit.api.chat.EnhancedAIService$SendMessageOptions");
+const PromptTurnClass = Java.type("com.cynosure.operit.core.chat.hooks.PromptTurn");
+const PromptTurnKindClass = Java.type("com.cynosure.operit.core.chat.hooks.PromptTurnKind");
+const SendMessageOptionsClass = Java.type("com.cynosure.operit.api.chat.EnhancedAIService$SendMessageOptions");
 const TOOL_TAG = /<tool\b[\s\S]*?<\/tool>/gi;
 const TOOL_SELF_CLOSING = /<tool\b[^>]*\/>/gi;
 const TOOL_RESULT_TAG = /<tool_result\b[\s\S]*?<\/tool_result>/gi;

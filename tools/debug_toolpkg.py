@@ -15,10 +15,10 @@ import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 
-APP_PACKAGE = "com.ai.assistance.operit"
-ACTION_DEBUG_INSTALL_TOOLPKG = "com.ai.assistance.operit.DEBUG_INSTALL_TOOLPKG"
+APP_PACKAGE = "com.cynosure.operit"
+ACTION_DEBUG_INSTALL_TOOLPKG = "com.cynosure.operit.DEBUG_INSTALL_TOOLPKG"
 RECEIVER_COMPONENT = (
-    "com.ai.assistance.operit/.core.tools.packTool.ToolPkgDebugInstallReceiver"
+    "com.cynosure.operit/.core.tools.packTool.ToolPkgDebugInstallReceiver"
 )
 REMOTE_PACKAGES_DIR = f"/sdcard/Android/data/{APP_PACKAGE}/files/packages"
 MANIFEST_FILENAMES = ("manifest.json", "manifest.hjson")

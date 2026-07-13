@@ -687,7 +687,7 @@ async function readScreenTextFromScreenshot(screenshotPath) {
     }
     const FileClass = Java.java.io.File;
     const UriClass = Java.android.net.Uri;
-    const OCRUtils = Java.com.ai.assistance.operit.util.OCRUtils;
+    const OCRUtils = Java.com.cynosure.operit.util.OCRUtils;
     const screenshotUri = UriClass.fromFile(new FileClass(normalizedPath));
     return String(await OCRUtils.callSuspend("recognizeText", context, screenshotUri, OCRUtils.Quality.HIGH)).trim();
 }

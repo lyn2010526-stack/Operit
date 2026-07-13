@@ -4,11 +4,11 @@ import { renderPlanXml } from "./plan-xml-render-plugin";
 import { resolveDeepSearchI18n } from "../i18n";
 import { normalizePromptTurnList } from "../prompt-turns";
 
-const ApiPreferences = Java.com.ai.assistance.operit.data.preferences.ApiPreferences;
-const EnhancedAIService = Java.com.ai.assistance.operit.api.chat.EnhancedAIService;
-const MessageProcessingController = Java.com.ai.assistance.operit.core.chat.plugins.MessageProcessingController;
+const ApiPreferences = Java.com.cynosure.operit.data.preferences.ApiPreferences;
+const EnhancedAIService = Java.com.cynosure.operit.api.chat.EnhancedAIService;
+const MessageProcessingController = Java.com.cynosure.operit.core.chat.plugins.MessageProcessingController;
 const ToolPkgMessageProcessingCancellationRegistry =
-  Java.com.ai.assistance.operit.plugins.toolpkg.ToolPkgMessageProcessingCancellationRegistry;
+  Java.com.cynosure.operit.plugins.toolpkg.ToolPkgMessageProcessingCancellationRegistry;
 
 const FEATURE_KEY = "ai_planning";
 const PROBE_LOG_TAG = "[deepsearching_probe]";

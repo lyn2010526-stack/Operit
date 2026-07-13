@@ -1,8 +1,8 @@
 @echo off
 setlocal EnableDelayedExpansion
 
-set "APP_ID=com.ai.assistance.operit"
-set "ACTION=com.ai.assistance.operit.DUMP_COMPOSE_DSL_UI"
+set "APP_ID=com.cynosure.operit"
+set "ACTION=com.cynosure.operit.DUMP_COMPOSE_DSL_UI"
 set "RECEIVER=%APP_ID%/.core.tools.packTool.ToolPkgComposeDslDebugDumpReceiver"
 set "REMOTE_DIR=/sdcard/Android/data/%APP_ID%/files/debug/compose_dsl_dump/current"
 set "SCRIPT_DIR=%~dp0"

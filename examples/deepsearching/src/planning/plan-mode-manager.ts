@@ -9,8 +9,8 @@ import { resolveDeepSearchI18n } from "../i18n";
 import { createPromptTurn, createSendMessageOptions, type PromptTurn } from "../prompt-turns";
 
 const Unit = Java.kotlin.Unit;
-const EnhancedAIServiceClass = Java.com.ai.assistance.operit.api.chat.EnhancedAIService;
-const InputProcessingStateBase = "com.ai.assistance.operit.data.model.InputProcessingState$";
+const EnhancedAIServiceClass = Java.com.cynosure.operit.api.chat.EnhancedAIService;
+const InputProcessingStateBase = "com.cynosure.operit.data.model.InputProcessingState$";
 
 const TAG = "PlanModeManager";
 

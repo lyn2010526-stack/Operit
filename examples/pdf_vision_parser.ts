@@ -82,7 +82,7 @@ const PdfVisionParser = (function () {
     const BitmapCompressFormat = Java.type("android.graphics.Bitmap$CompressFormat");
     const Color = Java.type("android.graphics.Color");
     const StandardCharsets = Java.type("java.nio.charset.StandardCharsets");
-    const EnhancedAIService = Java.type("com.ai.assistance.operit.api.chat.EnhancedAIService");
+    const EnhancedAIService = Java.type("com.cynosure.operit.api.chat.EnhancedAIService");
 
     interface ParsePdfWithVisionParams {
         pdf_path: string;

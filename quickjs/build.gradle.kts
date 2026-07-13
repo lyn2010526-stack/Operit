@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.ai.assistance.quickjs"
+    namespace = "com.cynosure.quickjs"
     compileSdk = 36
 
     defaultConfig {

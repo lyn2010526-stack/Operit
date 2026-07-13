@@ -268,7 +268,7 @@ function caseAndroidBridgeDirect(): any {
     const Version = Java.android.os.Build.VERSION;
     const Process = Java.android.os.Process;
     const SystemClock = Java.android.os.SystemClock;
-    const ActivityLifecycleManager = Java.com.ai.assistance.operit.core.application.ActivityLifecycleManager;
+    const ActivityLifecycleManager = Java.com.cynosure.operit.core.application.ActivityLifecycleManager;
     const AlertDialogBuilder = Java.android.app.AlertDialog.Builder;
 
     const manufacturer = String(Build.MANUFACTURER || "");

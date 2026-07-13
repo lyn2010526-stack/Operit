@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.ai.assistance.fbx"
+    namespace = "com.cynosure.fbx"
     compileSdk = 36
 
     defaultConfig {

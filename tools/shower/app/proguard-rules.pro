@@ -20,20 +20,20 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 
--keep class com.ai.assistance.shower.Main {
+-keep class com.cynosure.shower.Main {
     public static void main(java.lang.String[]);
 }
 
 # Keep Shower binder IPC types so they are not obfuscated when used across
 # the shower-server.jar (shell process) and the Operit app process.
--keep class com.ai.assistance.shower.ShowerBinderContainer {
+-keep class com.cynosure.shower.ShowerBinderContainer {
     *;
 }
 
--keep class com.ai.assistance.shower.IShowerService {
+-keep class com.cynosure.shower.IShowerService {
     *;
 }
 
--keep class com.ai.assistance.shower.IShowerVideoSink {
+-keep class com.cynosure.shower.IShowerVideoSink {
     *;
 }

@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "com.ai.assistance.mnn"
+    namespace = "com.cynosure.mnn"
     compileSdk = 36
 
     defaultConfig {

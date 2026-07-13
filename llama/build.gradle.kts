@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.ai.assistance.llama"
+    namespace = "com.cynosure.llama"
     compileSdk = 36
 
     defaultConfig {

@@ -11,7 +11,7 @@ namespace streamnative {
 
 namespace {
 
-// Must match com.ai.assistance.operit.util.markdown.MarkdownProcessorType ordinals.
+// Must match com.cynosure.operit.util.markdown.MarkdownProcessorType ordinals.
 constexpr int MD_HEADER = 0;
 constexpr int MD_BLOCK_QUOTE = 1;
 constexpr int MD_CODE_BLOCK = 2;

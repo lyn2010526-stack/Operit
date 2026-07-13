@@ -1,4 +1,4 @@
-package com.ai.assistance.operit.ui.common.composedsl
+package com.cynosure.operit.ui.common.composedsl
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -49,8 +49,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgComposeDslNode
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgComposeDslParser
+import com.cynosure.operit.core.tools.packTool.ToolPkgComposeDslNode
+import com.cynosure.operit.core.tools.packTool.ToolPkgComposeDslParser
 
 /**
  * AUTO-GENERATED from Compose Material3/Foundation component bindings.

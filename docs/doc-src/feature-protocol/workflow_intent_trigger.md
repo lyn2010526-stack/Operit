@@ -39,9 +39,9 @@ Android 对隐式广播有各种限制（尤其是后台、Android 8+ 等）。
 
 ## 2. Receiver / Component 信息
 
-- **Receiver 类**：`com.ai.assistance.operit.integrations.tasker.WorkflowTaskerReceiver`
-- **包名**：`com.ai.assistance.operit`
-- **Component**：`com.ai.assistance.operit/.integrations.tasker.WorkflowTaskerReceiver`
+- **Receiver 类**：`com.cynosure.operit.integrations.tasker.WorkflowTaskerReceiver`
+- **包名**：`com.cynosure.operit`
+- **Component**：`com.cynosure.operit/.integrations.tasker.WorkflowTaskerReceiver`
 
 ---
 
@@ -66,7 +66,7 @@ Android 对隐式广播有各种限制（尤其是后台、Android 8+ 等）。
 
 ```bash
 adb shell am broadcast \
-  -n com.ai.assistance.operit/.integrations.tasker.WorkflowTaskerReceiver \
+  -n com.cynosure.operit/.integrations.tasker.WorkflowTaskerReceiver \
   -a com.example.myapp.TRIGGER_OPERIT_WORKFLOW_A \
   --es message "hello from adb" \
   --es request_id "req-1001"
@@ -92,13 +92,13 @@ adb shell am broadcast \
 
 如果你的工作流 Trigger 里 `action` 配置的是默认值：
 
-- `com.ai.assistance.operit.TRIGGER_WORKFLOW`
+- `com.cynosure.operit.TRIGGER_WORKFLOW`
 
 那么可以使用：
 
 ```bash
 adb shell am broadcast \
-  -a com.ai.assistance.operit.TRIGGER_WORKFLOW \
+  -a com.cynosure.operit.TRIGGER_WORKFLOW \
   --es message "hello" \
   --es request_id "req-1002"
 ```
@@ -109,7 +109,7 @@ adb shell am broadcast \
 
 在内置的“Intent 触发 + 发送消息 + 回传广播”示范模板中，会使用工具节点 `send_broadcast` 回传结果：
 
-- **action**：`com.ai.assistance.operit.WORKFLOW_RESULT`
+- **action**：`com.cynosure.operit.WORKFLOW_RESULT`
 - **extra_key**：`result`
 - **extra_value**：来自 `send_message_to_ai` 节点的输出（字符串）
 
@@ -127,12 +127,12 @@ adb shell am broadcast \
 ### 6.1 用 Tasker 接收（最方便）
 
 - 在 Tasker 创建 Profile：Event -> System -> Intent Received
-- Action 填：`com.ai.assistance.operit.WORKFLOW_RESULT`
+- Action 填：`com.cynosure.operit.WORKFLOW_RESULT`
 - 在 Task 中读取变量（通常可直接用 `%result` 或从 extras 映射中取）
 
 ### 6.2 写一个最小接收 App / Receiver（用于调试）
 
-在你的测试 App 中注册一个 `BroadcastReceiver` 监听 `com.ai.assistance.operit.WORKFLOW_RESULT`，在 `onReceive()` 里读取：
+在你的测试 App 中注册一个 `BroadcastReceiver` 监听 `com.cynosure.operit.WORKFLOW_RESULT`，在 `onReceive()` 里读取：
 
 - `intent.getStringExtra("result")`
 

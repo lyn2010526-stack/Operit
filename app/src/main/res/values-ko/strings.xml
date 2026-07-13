@@ -924,7 +924,7 @@
     <string name="copy_path">경로 복사</string>
     <string name="path_copied_to_clipboard">경로가 클립보드에 복사되었습니다.</string>
     <string name="open_file_manager">파일 관리자 열기</string>
-    <string name="navigate_to_external_files">Android/data/com.ai.assistance.operit/files/packages 디렉터리로 이동하세요.</string>
+    <string name="navigate_to_external_files">Android/data/com.cynosure.operit/files/packages 디렉터리로 이동하세요.</string>
     <string name="package_js_only">JavaScript(.js) 및 ToolPkg(.toolpkg) 파일만 지원됩니다.</string>
     <string name="package_script_only">HJSON(.hjson), JavaScript(.js), TypeScript(.ts) 파일만 지원합니다</string>
     <string name="plugin_toolpkg_only">ToolPkg(.toolpkg) 파일만 지원합니다</string>

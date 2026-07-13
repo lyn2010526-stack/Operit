@@ -4,7 +4,7 @@
   "description": "用于验证 ToolPkg 工作流模板导入链路。",
   "nodes": [
     {
-      "__type": "com.ai.assistance.operit.data.model.TriggerNode",
+      "__type": "com.cynosure.operit.data.model.TriggerNode",
       "id": "trigger_manual_template_try",
       "type": "trigger",
       "name": "手动触发",
@@ -17,7 +17,7 @@
       "triggerConfig": {}
     },
     {
-      "__type": "com.ai.assistance.operit.data.model.ExecuteNode",
+      "__type": "com.cynosure.operit.data.model.ExecuteNode",
       "id": "execute_send_message_template_try",
       "type": "execute",
       "name": "发送引导消息",
@@ -29,7 +29,7 @@
       "actionType": "send_message_to_ai",
       "actionConfig": {
         "message": {
-          "__type": "com.ai.assistance.operit.data.model.ParameterValue.StaticValue",
+          "__type": "com.cynosure.operit.data.model.ParameterValue.StaticValue",
           "value": "这是来自 template_try 的工作流模板导入演示。"
         }
       },

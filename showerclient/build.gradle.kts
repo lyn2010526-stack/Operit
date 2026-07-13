@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.ai.assistance.showerclient"
+    namespace = "com.cynosure.showerclient"
     compileSdk = 36
 
     defaultConfig {
