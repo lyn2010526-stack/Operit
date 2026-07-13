@@ -528,6 +528,12 @@
     <string name="toolbox">工具箱</string>
     <string name="mcp">MCP</string>
     <string name="token_config_title">DeepSeek Token配置</string>
+    <string name="token_input_label">输入</string>
+    <string name="token_output_label">输出</string>
+    <string name="token_cached_label">缓存</string>
+    <string name="token_total_label">总 Token</string>
+    <string name="token_no_usage_data">暂无数据，开始对话后会自动统计</string>
+    <string name="token_per_model_label">各模型用量 (共 %d 个)</string>
     <string name="character_card_change_title">角色卡已变更</string>
     <string name="character_card_change_prompt">角色卡已变更，是否前往对话管理界面处理聊天绑定的角色卡？</string>
     <string name="go_to_chat_management">前往对话管理</string>
@@ -1629,6 +1635,8 @@
     <string name="pause_reading">暂停朗读</string>
     <string name="resume_reading">继续朗读</string>
     <string name="stop_reading">停止朗读</string>
+    <string name="play_all_conversation">播放全部对话</string>
+    <string name="stop_play_all">停止播放全部</string>
     <string name="edit_and_resend">编辑并重发</string>
     <string name="rollback_to_here">回滚到此处</string>
     <string name="select_copy">选择并复制</string>
@@ -2389,6 +2397,9 @@
     <string name="toolbox_subtitle">开发和系统管理工具集合</string>
     <string name="toolbox_no_tools">此分类下暂无工具</string>
     <string name="toolbox_animation_loading">正在加载工具...</string>
+    <string name="toolbox_sort_default">默认顺序</string>
+    <string name="toolbox_sort_name_asc">按名称 A-Z</string>
+    <string name="toolbox_sort_name_desc">按名称 Z-A</string>
     
     <!-- File Manager -->
     <string name="file_manager_title">文件管理器</string>
@@ -7986,5 +7997,10 @@
     <string name="notification_kind_review_rejected">未通过审核</string>
     <string name="notification_kind_review_changes">需要修改</string>
     <string name="notification_kind_entry_curated">入选精选</string>
+
+    <!-- Global Node -->
+    <string name="workflow_node_type_global_ref">全局节点引用</string>
+    <string name="workflow_global_node_ref_id_label">全局节点 ID</string>
+    <string name="workflow_global_node_not_found">全局节点不存在: %1$s</string>
 
 </resources>

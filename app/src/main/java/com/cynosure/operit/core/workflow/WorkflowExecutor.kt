@@ -11,6 +11,7 @@ import com.cynosure.operit.data.model.ConditionOperator
 import com.cynosure.operit.data.model.ExecuteNode
 import com.cynosure.operit.data.model.ExtractMode
 import com.cynosure.operit.data.model.ExtractNode
+import com.cynosure.operit.data.model.GlobalRefNode
 import com.cynosure.operit.data.model.LogicNode
 import com.cynosure.operit.data.model.LogicOperator
 import com.cynosure.operit.data.model.ParameterValue
@@ -75,6 +76,7 @@ data class WorkflowExecutionResult(
 class WorkflowExecutor(private val context: Context) {
     
     private val toolHandler = AIToolHandler.getInstance(context)
+    private val globalNodeManager = WorkflowGlobalNodeManager.getInstance(context)
     
     companion object {
         private const val TAG = "WorkflowExecutor"
@@ -504,6 +506,21 @@ class WorkflowExecutor(private val context: Context) {
 
         return dependencies.toList()
     }
+
+    private fun resolveGlobalNodes(workflow: Workflow): List<WorkflowNode> {
+        return workflow.nodes.map { node ->
+            if (node is GlobalRefNode && node.globalNodeId.isNotBlank()) {
+                val global = globalNodeManager.getGlobalNode(node.globalNodeId)
+                if (global != null) {
+                    global.nodeData
+                } else {
+                    node
+                }
+            } else {
+                node
+            }
+        }
+    }
     
     /**
      * 执行工作流
@@ -553,8 +570,11 @@ class WorkflowExecutor(private val context: Context) {
         )
 
         try {
+            // 0. 解析全局节点引用
+            val resolvedWorkflow = workflow.copy(nodes = resolveGlobalNodes(workflow))
+
             // 1. 找到所有触发节点作为入口
-            val allTriggerNodes = workflow.nodes.filterIsInstance<TriggerNode>()
+            val allTriggerNodes = resolvedWorkflow.nodes.filterIsInstance<TriggerNode>()
             
             if (allTriggerNodes.isEmpty()) {
                 runLogger.w(context.getString(R.string.workflow_log_no_trigger_node))
@@ -606,10 +626,10 @@ class WorkflowExecutor(private val context: Context) {
             currentCoroutineContext().ensureActive()
 
             // 3. 构建依赖图
-            val dependencyGraph = buildDependencyGraph(workflow)
+            val dependencyGraph = buildDependencyGraph(resolvedWorkflow)
             
             // 4. 检测环
-            if (detectCycle(dependencyGraph.adjacencyList, workflow.nodes)) {
+            if (detectCycle(dependencyGraph.adjacencyList, resolvedWorkflow.nodes)) {
                 runLogger.e(context.getString(R.string.workflow_log_circular_dependency))
                 return@withContext buildResult(
                     success = false,
@@ -631,7 +651,7 @@ class WorkflowExecutor(private val context: Context) {
             // 6. 使用拓扑排序执行所有后续节点
             val executionResult = executeTopologicalOrder(
                 startNodeIds = triggerNodes.map { it.id },
-                workflow = workflow,
+                workflow = resolvedWorkflow,
                 dependencyGraph = dependencyGraph,
                 nodeResults = nodeResults,
                 triggerExtras = triggerExtras,

@@ -187,3 +187,30 @@ data class WorkflowNodeConnection(
     var condition: String? = null // 连接条件（可选）
 )
 
+/**
+ * 全局节点：可在多个工作流间共享的可复用节点模板
+ */
+@Serializable
+data class WorkflowGlobalNode(
+    val id: String = UUID.randomUUID().toString(),
+    var name: String = "",
+    var description: String = "",
+    var nodeData: WorkflowNode, // 存储的节点定义
+    val createdAt: Long = System.currentTimeMillis(),
+    var updatedAt: Long = System.currentTimeMillis()
+)
+
+/**
+ * 全局节点引用：在工作流中引用一个全局节点
+ * 执行时会解析为真正的节点
+ */
+@Serializable
+data class GlobalRefNode(
+    override val id: String = UUID.randomUUID().toString(),
+    override val type: String = "global_ref",
+    override var name: String = "",
+    override var description: String = "",
+    override var position: NodePosition = NodePosition(0f, 0f),
+    var globalNodeId: String = "" // 引用的全局节点 ID
+) : WorkflowNode()
+
