@@ -46,6 +46,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import com.cynosure.operit.R
 
 /**
@@ -53,6 +56,18 @@ import com.cynosure.operit.R
  */
 data class ParsedMessagePart(val type: PartType, val content: String, val tag: String? = null, val attributes: String? = null)
 enum class PartType { TEXT, XML }
+
+internal enum class MessageEditorEntryTarget { RAW_TEXT, VISUAL_TEXT, FIRST_XML }
+
+internal fun resolveMessageEditorEntryTarget(
+    isRawEditMode: Boolean,
+    parts: List<ParsedMessagePart>,
+): MessageEditorEntryTarget? {
+    if (isRawEditMode) return MessageEditorEntryTarget.RAW_TEXT
+    if (parts.any { it.type == PartType.TEXT }) return MessageEditorEntryTarget.VISUAL_TEXT
+    if (parts.any { it.type == PartType.XML }) return MessageEditorEntryTarget.FIRST_XML
+    return null
+}
 
 private data class XmlTagSuggestion(
     val name: String,
@@ -130,18 +145,42 @@ fun MessageEditor(
     var partsState by remember { mutableStateOf(initialParts) }
     var partToEdit by remember { mutableStateOf<Pair<Int, ParsedMessagePart>?>(null) }
     var showCreateTagDialog by remember { mutableStateOf(false) }
-    var isRawEditMode by remember { mutableStateOf(false) }
+    // 如果消息没有 XML 标签（纯文本），默认用原始编辑模式，键盘直接弹起
+    val hasXmlTags = remember(initialParts) { initialParts.any { it.type == PartType.XML } }
+    var isRawEditMode by remember { mutableStateOf(!hasXmlTags) }
+
+    val rawEditorFocusRequester = remember { FocusRequester() }
+    val visualEditorFocusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    LaunchedEffect(isRawEditMode) {
+        val activeParts =
+            if (isRawEditMode) {
+                partsState
+            } else {
+                parseMessageContentForEditor(editingMessageContent.value).also { partsState = it }
+            }
+        when (resolveMessageEditorEntryTarget(isRawEditMode, activeParts)) {
+            MessageEditorEntryTarget.RAW_TEXT -> {
+                rawEditorFocusRequester.requestFocus()
+                keyboardController?.show()
+            }
+            MessageEditorEntryTarget.VISUAL_TEXT -> {
+                visualEditorFocusRequester.requestFocus()
+                keyboardController?.show()
+            }
+            MessageEditorEntryTarget.FIRST_XML -> {
+                partToEdit = activeParts.firstOrNull { it.type == PartType.XML }?.let { part ->
+                    activeParts.indexOf(part) to part
+                }
+            }
+            null -> Unit
+        }
+    }
 
     LaunchedEffect(partsState) {
         if (!isRawEditMode) {
             editingMessageContent.value = recomposeMessageFromParts(partsState)
-        }
-    }
-
-    LaunchedEffect(isRawEditMode) {
-        if (!isRawEditMode) {
-            // Just switched from raw to visual editor, re-parse the content
-            partsState = parseMessageContentForEditor(editingMessageContent.value)
         }
     }
 
@@ -212,6 +251,7 @@ fun MessageEditor(
                             onValueChange = { editingMessageContent.value = it },
                             modifier = Modifier
                                 .fillMaxSize()
+                                .focusRequester(rawEditorFocusRequester)
                                 .padding(horizontal = 16.dp, vertical = 8.dp),
                             label = { Text(context.getString(R.string.plain_text_content)) },
                             textStyle = MaterialTheme.typography.bodyMedium.copy(
@@ -260,6 +300,13 @@ fun MessageEditor(
                                                 },
                                                 modifier = Modifier
                                                     .fillMaxWidth()
+                                                    .then(
+                                                        if (index == partsState.indexOfFirst { it.type == PartType.TEXT }) {
+                                                            Modifier.focusRequester(visualEditorFocusRequester)
+                                                        } else {
+                                                            Modifier
+                                                        }
+                                                    )
                                                     .heightIn(min = 56.dp, max = 260.dp),
                                                 label = { Text(context.getString(R.string.text_label), style = MaterialTheme.typography.bodySmall) },
                                                 placeholder = { Text(context.getString(R.string.input_text_content)) },
@@ -599,6 +646,13 @@ private fun TagEditorDialog(
     var content by remember { mutableStateOf(part?.content ?: "") }
     var tagMenuExpanded by remember { mutableStateOf(false) }
     val isNewTag = part == null
+    val contentFocusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    LaunchedEffect(Unit) {
+        contentFocusRequester.requestFocus()
+        keyboardController?.show()
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -707,7 +761,7 @@ private fun TagEditorDialog(
                             }
                         }
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().focusRequester(contentFocusRequester),
                     shape = RoundedCornerShape(12.dp),
                     textStyle = MaterialTheme.typography.bodyMedium,
                     colors = OutlinedTextFieldDefaults.colors(

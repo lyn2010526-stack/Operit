@@ -25,6 +25,8 @@ fun NodeActionMenuDialog(
     onViewLogs: () -> Unit,
     onConnect: () -> Unit,
     onDelete: () -> Unit,
+    onEditGlobalTemplate: (() -> Unit)? = null,
+    onUnlinkGlobalReference: (() -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
     Dialog(onDismissRequest = onDismiss) {
@@ -58,6 +60,34 @@ fun NodeActionMenuDialog(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(stringResource(R.string.workflow_action_edit_node))
+                }
+
+                onEditGlobalTemplate?.let { editGlobalTemplate ->
+                    TextButton(
+                        onClick = {
+                            onDismiss()
+                            editGlobalTemplate()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.workflow_global_node_edit_template))
+                    }
+                }
+
+                onUnlinkGlobalReference?.let { unlinkGlobalReference ->
+                    TextButton(
+                        onClick = {
+                            onDismiss()
+                            unlinkGlobalReference()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Link, contentDescription = null, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.workflow_global_node_unlink))
+                    }
                 }
 
                 TextButton(
@@ -123,4 +153,3 @@ fun NodeActionMenuDialog(
         }
     }
 }
-

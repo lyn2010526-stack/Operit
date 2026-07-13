@@ -10,6 +10,10 @@ data class LanSyncSnapshot(
     val activePeerDeviceId: String? = null,
     val sentChangeCount: Int = 0,
     val receivedChangeCount: Int = 0,
+    val conflictCount: Int = 0,
+    val serverRunning: Boolean = false,
+    val serverPort: Int = 0,
+    val pairingCode: String = "",
     val lastError: String? = null
 )
 

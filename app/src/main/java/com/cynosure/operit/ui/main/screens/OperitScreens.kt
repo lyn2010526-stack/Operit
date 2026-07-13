@@ -89,6 +89,7 @@ import com.cynosure.operit.ui.features.toolbox.screens.tooltester.ToolTesterScre
 import com.cynosure.operit.ui.features.toolbox.screens.autoglm.AutoGlmOneClickToolScreen
 import com.cynosure.operit.ui.features.toolbox.screens.autoglm.AutoGlmToolScreen
 import com.cynosure.operit.ui.features.update.screens.UpdateScreen
+import com.cynosure.operit.ui.features.settings.screens.LanSyncSettingsScreen
 import com.cynosure.operit.ui.features.workflow.screens.WorkflowListScreen
 import com.cynosure.operit.ui.features.workflow.screens.WorkflowDetailScreen
 import com.cynosure.operit.ui.main.PendingChatDraftHandler
@@ -600,8 +601,24 @@ sealed class Screen(
                     navigateToTokenUsageStatistics = { navigateTo(TokenUsageStatistics) },
                     navigateToDiagnostics = { navigateTo(Diagnostics) },
                     navigateToContextSummarySettings = { navigateTo(ContextSummarySettings) },
-                    navigateToLayoutAdjustmentSettings = { navigateTo(LayoutAdjustmentSettings) }
+                    navigateToLayoutAdjustmentSettings = { navigateTo(LayoutAdjustmentSettings) },
+                    navigateToLanSyncSettings = { navigateTo(LanSyncSettings) }
             )
+        }
+    }
+
+    data object LanSyncSettings : Screen(navItem = NavItem.Settings) {
+        @Composable
+        override fun Content(
+            navController: NavController,
+            navigateTo: ScreenNavigationHandler,
+            onGoBack: () -> Unit,
+            hasBackgroundImage: Boolean,
+            onLoading: (Boolean) -> Unit,
+            onError: (String) -> Unit,
+            onGestureConsumed: (Boolean) -> Unit,
+        ) {
+            LanSyncSettingsScreen(onBackPressed = onGoBack)
         }
     }
 
@@ -1537,4 +1554,3 @@ object GestureStateHolder {
     // 聊天界面手势是否被消费的状态
     var isChatScreenGestureConsumed: Boolean = false
 }
-

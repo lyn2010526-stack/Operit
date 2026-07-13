@@ -17,12 +17,15 @@ import com.cynosure.operit.data.model.ExtractMode
 import com.cynosure.operit.data.model.ExtractNode
 import com.cynosure.operit.data.model.LogicNode
 import com.cynosure.operit.data.model.LogicOperator
+import com.cynosure.operit.data.model.GlobalRefNode
 import com.cynosure.operit.data.model.NodePosition
 import com.cynosure.operit.data.model.ParameterValue
 import com.cynosure.operit.data.model.TriggerNode
 import com.cynosure.operit.data.model.WorkflowNodeConnection
 import com.cynosure.operit.data.model.Workflow
 import com.cynosure.operit.data.model.WorkflowExecutionRecord
+import com.cynosure.operit.data.model.WorkflowGlobalNode
+import com.cynosure.operit.data.model.WorkflowNode
 import com.cynosure.operit.R
 import com.cynosure.operit.data.repository.WorkflowRepository
 import kotlinx.coroutines.CancellationException
@@ -70,16 +73,82 @@ class WorkflowViewModel(application: Application) : AndroidViewModel(application
     private val _nodeExecutionStates = MutableStateFlow<Map<String, NodeExecutionState>>(emptyMap())
     val nodeExecutionStates: StateFlow<Map<String, NodeExecutionState>> = _nodeExecutionStates.asStateFlow()
     val runningWorkflowIds: StateFlow<Set<String>> = WorkflowRepository.runningWorkflowIds
+    val globalNodes: StateFlow<List<WorkflowGlobalNode>> = repository.globalNodes
+    val globalNodeError: StateFlow<Throwable?> = repository.globalNodeError
     
     init {
         loadWorkflows()
         loadToolPkgWorkflowTemplates()
+        refreshGlobalNodes()
 
         viewModelScope.launch {
             WorkflowRepository.workflowUpdateEvents.collectLatest {
                 loadWorkflows(showLoading = false)
                 currentWorkflow?.id?.let { loadWorkflow(it, showLoading = false) }
             }
+        }
+    }
+
+    fun refreshGlobalNodes() {
+        viewModelScope.launch {
+            repository.refreshGlobalNodes().onFailure {
+                error = it.message ?: app.getString(R.string.workflow_global_node_load_failed)
+            }
+        }
+    }
+
+    fun createGlobalNode(node: WorkflowNode, onSuccess: (WorkflowGlobalNode) -> Unit = {}) {
+        viewModelScope.launch {
+            error = null
+            repository.saveGlobalNode(
+                WorkflowGlobalNode(name = node.name, description = node.description, nodeData = node)
+            ).fold(onSuccess, { error = it.message ?: app.getString(R.string.workflow_global_node_save_failed) })
+        }
+    }
+
+    fun updateGlobalNode(globalNode: WorkflowGlobalNode, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            error = null
+            repository.saveGlobalNode(globalNode).fold(
+                onSuccess = { onSuccess() },
+                onFailure = { error = it.message ?: app.getString(R.string.workflow_global_node_save_failed) }
+            )
+        }
+    }
+
+    fun deleteGlobalNode(id: String, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            error = null
+            repository.deleteGlobalNode(id).fold(
+                onSuccess = { onSuccess() },
+                onFailure = { error = it.message ?: app.getString(R.string.workflow_global_node_delete_failed) }
+            )
+        }
+    }
+
+    fun addGlobalReference(workflowId: String, globalNode: WorkflowGlobalNode, onSuccess: () -> Unit = {}) {
+        addNode(
+            workflowId,
+            GlobalRefNode(
+                name = globalNode.name,
+                description = globalNode.description,
+                globalNodeId = globalNode.id
+            ),
+            onSuccess
+        )
+    }
+
+    fun unlinkGlobalReference(workflowId: String, nodeId: String, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            error = null
+            repository.unlinkGlobalReference(workflowId, nodeId).fold(
+                onSuccess = {
+                    currentWorkflow = it
+                    loadWorkflows()
+                    onSuccess()
+                },
+                onFailure = { error = it.message ?: app.getString(R.string.workflow_global_node_unlink_failed) }
+            )
         }
     }
 
@@ -1284,26 +1353,13 @@ class WorkflowViewModel(application: Application) : AndroidViewModel(application
             isLoading = true
             error = null
             
-            repository.getWorkflowById(workflowId).fold(
-                onSuccess = { workflow ->
-                    workflow ?: return@fold
-                    val updatedWorkflow = workflow.copy(
-                        nodes = workflow.nodes.filter { it.id != nodeId },
-                        connections = workflow.connections.filter { 
-                            it.sourceNodeId != nodeId && it.targetNodeId != nodeId 
-                        },
-                        updatedAt = System.currentTimeMillis()
-                    )
-                    repository.updateWorkflow(updatedWorkflow).fold(
-                        onSuccess = {
-                            currentWorkflow = it
-                            loadWorkflows()
-                            onSuccess()
-                        },
-                        onFailure = { error = it.message ?: app.getString(R.string.workflow_error_delete_node_failed) }
-                    )
+            repository.deleteWorkflowNode(workflowId, nodeId).fold(
+                onSuccess = {
+                    currentWorkflow = it
+                    loadWorkflows()
+                    onSuccess()
                 },
-                onFailure = { error = it.message ?: app.getString(R.string.workflow_load_failed) }
+                onFailure = { error = it.message ?: app.getString(R.string.workflow_error_delete_node_failed) }
             )
             
             isLoading = false
@@ -1482,6 +1538,10 @@ class WorkflowViewModel(application: Application) : AndroidViewModel(application
      */
     fun clearError() {
         error = null
+    }
+
+    fun showError(message: String) {
+        error = message
     }
     
     /**

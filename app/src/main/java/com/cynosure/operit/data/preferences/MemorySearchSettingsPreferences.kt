@@ -69,6 +69,16 @@ class MemorySearchSettingsPreferences(context: Context, profileId: String) {
             .apply()
     }
 
+    fun loadMemorySavePrompt(): String {
+        return searchPrefs.getString(KEY_MEMORY_SAVE_PROMPT, "").orEmpty()
+    }
+
+    fun saveMemorySavePrompt(prompt: String) {
+        searchPrefs.edit()
+            .putString(KEY_MEMORY_SAVE_PROMPT, prompt)
+            .apply()
+    }
+
     fun loadCloudEmbedding(): CloudEmbeddingConfig {
         return CloudEmbeddingConfig(
             enabled = cloudPrefs.getBoolean(KEY_CLOUD_ENABLED, false),
@@ -100,6 +110,7 @@ class MemorySearchSettingsPreferences(context: Context, profileId: String) {
         private const val KEY_EDGE_WEIGHT = "edge_weight"
         private const val KEY_AUTO_SAVE_INTERVAL_MINUTES = "auto_save_interval_minutes"
         private const val KEY_NEXT_AUTO_SAVE_RUN_AT_MS = "next_auto_save_run_at_ms"
+        private const val KEY_MEMORY_SAVE_PROMPT = "memory_save_prompt"
 
         private const val KEY_CLOUD_ENABLED = "enabled"
         private const val KEY_CLOUD_ENDPOINT = "endpoint"

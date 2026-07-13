@@ -782,6 +782,10 @@ class CharacterCardManager private constructor(private val context: Context) {
         }
     }
 
+    suspend fun upsertSyncedCharacterCard(card: CharacterCard) {
+        upsertCharacterCardWithId(card)
+    }
+
     private suspend fun resolveEmojiSourcePrompt(): ActivePrompt {
         val activeGroupId = CharacterGroupCardManager.getInstance(context).observeActiveCharacterGroupId().first()
         if (!activeGroupId.isNullOrBlank()) {

@@ -2696,7 +2696,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
                             credibility = serializableMemory.credibility
                             importance = serializableMemory.importance
                             folderPath = normalizeFolderPath(serializableMemory.folderPath)
-                            updatedAt = Date()
+                            updatedAt = serializableMemory.updatedAt
                         }
                         memoryBox.put(existingMemory)
                         updatedCount++
@@ -2722,7 +2722,9 @@ class MemoryRepository(private val context: Context, profileId: String) {
             var newLinksCount = 0
             exportData.links.forEach { serializableLink ->
                 val sourceMemory = uuidMap[serializableLink.sourceUuid]
+                    ?: memoryBox.query(Memory_.uuid.equal(serializableLink.sourceUuid)).build().findFirst()
                 val targetMemory = uuidMap[serializableLink.targetUuid]
+                    ?: memoryBox.query(Memory_.uuid.equal(serializableLink.targetUuid)).build().findFirst()
                 
                 if (sourceMemory != null && targetMemory != null) {
                     // 检查链接是否已存在 - 查询所有链接并手动过滤

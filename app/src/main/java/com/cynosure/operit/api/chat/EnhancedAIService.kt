@@ -346,6 +346,7 @@ class EnhancedAIService private constructor(private val context: Context) {
         var roleCardId: String? = null,
         var enableGroupOrchestrationHint: Boolean = false,
         var groupParticipantNamesText: String? = null,
+        var groupSystemPrompt: String? = null,
         var proxySenderName: String? = null,
         var callbacks: SendMessageCallbacks? = null,
         var onToolInvocation: (suspend (String) -> Unit)? = null,
@@ -906,6 +907,7 @@ class EnhancedAIService private constructor(private val context: Context) {
         val roleCardId = options.roleCardId
         val enableGroupOrchestrationHint = options.enableGroupOrchestrationHint
         val groupParticipantNamesText = options.groupParticipantNamesText
+        val groupSystemPrompt = options.groupSystemPrompt
         val proxySenderName = options.proxySenderName
         val callbacks = options.callbacks
         val notifyReplyOverride = options.notifyReplyOverride
@@ -992,6 +994,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                                     roleCardId,
                                     enableGroupOrchestrationHint,
                                     groupParticipantNamesText,
+                                    groupSystemPrompt,
                                     proxySenderName,
                                     isSubTask,
                                     functionType,
@@ -2742,6 +2745,7 @@ class EnhancedAIService private constructor(private val context: Context) {
             roleCardId: String?,
             enableGroupOrchestrationHint: Boolean,
             groupParticipantNamesText: String? = null,
+            groupSystemPrompt: String? = null,
             proxySenderName: String? = null,
             isSubTask: Boolean = false,
             functionType: FunctionType = FunctionType.CHAT,
@@ -2780,6 +2784,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                 roleCardId,
                 enableGroupOrchestrationHint,
                 groupParticipantNamesText,
+                groupSystemPrompt,
                 proxySenderName,
                 hasImageRecognition,
                 hasAudioRecognition,

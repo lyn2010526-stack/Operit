@@ -45,6 +45,7 @@ import com.cynosure.operit.data.model.LogicNode
 import com.cynosure.operit.data.model.ParameterValue
 import com.cynosure.operit.data.model.WorkflowNode
 import com.cynosure.operit.data.model.WorkflowNodeConnection
+import com.cynosure.operit.data.model.GlobalRefNode
 import kotlin.math.roundToInt
 
 // 画布配置常量
@@ -66,6 +67,7 @@ fun GridWorkflowCanvas(
     onNodePositionChanged: (nodeId: String, x: Float, y: Float) -> Unit,
     onNodeLongPress: (nodeId: String) -> Unit,
     onNodeClick: (nodeId: String) -> Unit,
+    availableGlobalNodeIds: Set<String> = emptySet(),
     modifier: Modifier = Modifier,
     cellSize: Dp = CELL_SIZE
 ) {
@@ -699,6 +701,7 @@ fun GridWorkflowCanvas(
                         node = node,
                         isDragging = node.id == draggingNodeId,
                         executionState = nodeExecutionStates[node.id],
+                        isMissingGlobalReference = node is GlobalRefNode && node.globalNodeId !in availableGlobalNodeIds,
                         onDragStart = {
                             draggingNodeId = node.id
                         },
@@ -768,4 +771,3 @@ fun GridWorkflowCanvas(
         }
     }
 }
-

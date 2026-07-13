@@ -524,6 +524,7 @@ class MessageCoordinationDelegate(
         enableGroupOrchestration: Boolean = true,
         isGroupOrchestrationTurn: Boolean = false,
         groupParticipantNamesText: String? = null,
+        groupSystemPrompt: String? = null,
         turnOptions: ChatTurnOptions = ChatTurnOptions()
     ) {
         // 如果不是自动续写，更新当前的 promptFunctionType
@@ -581,6 +582,7 @@ class MessageCoordinationDelegate(
                         suppressUserMessageInHistory = suppressUserMessageInHistory,
                         forceDisableSummary = forceDisableSummary,
                         enableGroupOrchestration = false,
+                        groupSystemPrompt = groupSystemPrompt,
                         turnOptions = turnOptions
                     )
                 }
@@ -728,6 +730,7 @@ class MessageCoordinationDelegate(
             suppressUserMessageInHistory = suppressUserMessageInHistory,
             isGroupOrchestrationTurn = isGroupOrchestrationTurn,
             groupParticipantNamesText = groupParticipantNamesText,
+            groupSystemPrompt = groupSystemPrompt,
             turnOptions = turnOptions
         )
 
@@ -1072,6 +1075,7 @@ class MessageCoordinationDelegate(
                     enableGroupOrchestration = false,
                     isGroupOrchestrationTurn = true,
                     groupParticipantNamesText = groupParticipantNamesText,
+                    groupSystemPrompt = group.systemPrompt,
                     turnOptions = turnOptions
                 )
                 userMessageInsertedForCurrentUserTurn = true

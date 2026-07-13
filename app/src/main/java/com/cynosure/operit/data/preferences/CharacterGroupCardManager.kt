@@ -183,6 +183,17 @@ class CharacterGroupCardManager private constructor(private val context: Context
         return allCharacterGroupCardsFlow.first()
     }
 
+    suspend fun upsertSyncedCharacterGroupCard(group: CharacterGroupCard) {
+        if (group.id.isBlank()) return
+        val normalizedGroup = normalizeGroup(group)
+        dataStore.edit { preferences ->
+            val currentList = preferences[CHARACTER_GROUP_LIST]?.toMutableSet() ?: mutableSetOf()
+            currentList.add(group.id)
+            preferences[CHARACTER_GROUP_LIST] = currentList
+            preferences[groupDataKey(group.id)] = gson.toJson(normalizedGroup)
+        }
+    }
+
     suspend fun initializeIfNeeded() {
         dataStore.edit { preferences ->
             if (preferences[CHARACTER_GROUP_LIST] == null) {

@@ -6,11 +6,19 @@ import com.cynosure.operit.R
 import com.cynosure.operit.util.AppLogger
 import com.cynosure.operit.core.workflow.NodeExecutionState
 import com.cynosure.operit.core.workflow.WorkflowExecutor
+import com.cynosure.operit.core.workflow.WorkflowGlobalNodeManager
 import com.cynosure.operit.core.workflow.WorkflowScheduler
 import com.cynosure.operit.data.model.ExecutionStatus
 import com.cynosure.operit.data.model.Workflow
 import com.cynosure.operit.data.model.WorkflowExecutionRecord
 import com.cynosure.operit.data.model.TriggerNode
+import com.cynosure.operit.data.model.ConditionNode
+import com.cynosure.operit.data.model.ExecuteNode
+import com.cynosure.operit.data.model.ExtractNode
+import com.cynosure.operit.data.model.GlobalRefNode
+import com.cynosure.operit.data.model.ParameterValue
+import com.cynosure.operit.data.model.WorkflowGlobalNode
+import com.cynosure.operit.data.model.WorkflowNode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
@@ -46,6 +54,9 @@ class WorkflowRepository(private val context: Context) {
     
     // Lazy initialization to avoid WorkManager initialization issues during app startup
     private val scheduler by lazy { WorkflowScheduler(context) }
+    private val globalNodeManager = WorkflowGlobalNodeManager.getInstance(context)
+    val globalNodes: StateFlow<List<WorkflowGlobalNode>> = globalNodeManager.globalNodes
+    val globalNodeError: StateFlow<Throwable?> = globalNodeManager.error
     
     companion object {
         private const val TAG = "WorkflowRepository"
@@ -171,6 +182,75 @@ class WorkflowRepository(private val context: Context) {
 
     private fun hasScheduleTrigger(workflow: Workflow): Boolean {
         return workflow.nodes.filterIsInstance<TriggerNode>().any { it.triggerType == "schedule" }
+    }
+
+    data class GlobalNodeUsage(
+        val workflowId: String,
+        val workflowName: String,
+        val nodeId: String,
+        val nodeName: String
+    )
+
+    suspend fun refreshGlobalNodes(): Result<List<WorkflowGlobalNode>> = globalNodeManager.refresh()
+
+    suspend fun saveGlobalNode(node: WorkflowGlobalNode): Result<WorkflowGlobalNode> =
+        globalNodeManager.saveGlobalNode(node)
+
+    suspend fun getGlobalNode(id: String): Result<WorkflowGlobalNode?> = globalNodeManager.getGlobalNode(id)
+
+    suspend fun scanGlobalNodeReferences(globalNodeId: String): Result<List<GlobalNodeUsage>> =
+        getAllWorkflows().map { workflows ->
+            workflows.flatMap { workflow ->
+                workflow.nodes.filterIsInstance<GlobalRefNode>()
+                    .filter { it.globalNodeId == globalNodeId }
+                    .map { GlobalNodeUsage(workflow.id, workflow.name, it.id, it.name) }
+            }
+        }
+
+    suspend fun deleteGlobalNode(id: String): Result<Boolean> {
+        return scanGlobalNodeReferences(id).mapCatching { usages ->
+            require(usages.isEmpty()) {
+                "Global template is used at: " + usages.joinToString { "${it.workflowName}/${it.nodeName}" }
+            }
+            globalNodeManager.deleteGlobalNode(id).getOrThrow()
+        }
+    }
+
+    suspend fun unlinkGlobalReference(workflowId: String, nodeId: String): Result<Workflow> {
+        return getWorkflowById(workflowId).mapCatching { workflow ->
+            workflow ?: throw IllegalStateException(context.getString(R.string.workflow_not_found))
+            val reference = workflow.nodes.find { it.id == nodeId } as? GlobalRefNode
+                ?: throw IllegalArgumentException("Node is not a global reference: $nodeId")
+            val resolved = globalNodeManager.resolveReference(reference).getOrThrow()
+            updateWorkflow(workflow.copy(nodes = workflow.nodes.map { if (it.id == nodeId) resolved else it }))
+                .getOrThrow()
+        }
+    }
+
+    suspend fun deleteWorkflowNode(workflowId: String, nodeId: String): Result<Workflow> {
+        return getWorkflowById(workflowId).mapCatching { workflow ->
+            workflow ?: throw IllegalStateException(context.getString(R.string.workflow_not_found))
+            val usages = workflow.nodes.filter { it.id != nodeId }
+                .filter { referencedNodeIds(it).contains(nodeId) }
+            require(usages.isEmpty()) {
+                "Node is referenced by parameters at: " + usages.joinToString { it.name.ifBlank { it.id } }
+            }
+            updateWorkflow(
+                workflow.copy(
+                    nodes = workflow.nodes.filter { it.id != nodeId },
+                    connections = workflow.connections.filter {
+                        it.sourceNodeId != nodeId && it.targetNodeId != nodeId
+                    }
+                )
+            ).getOrThrow()
+        }
+    }
+
+    private fun referencedNodeIds(node: WorkflowNode): Set<String> = when (node) {
+        is ExecuteNode -> node.actionConfig.values.filterIsInstance<ParameterValue.NodeReference>().map { it.nodeId }.toSet()
+        is ConditionNode -> listOf(node.left, node.right).filterIsInstance<ParameterValue.NodeReference>().map { it.nodeId }.toSet()
+        is ExtractNode -> (listOf(node.source) + node.others).filterIsInstance<ParameterValue.NodeReference>().map { it.nodeId }.toSet()
+        else -> emptySet()
     }
     
     /**

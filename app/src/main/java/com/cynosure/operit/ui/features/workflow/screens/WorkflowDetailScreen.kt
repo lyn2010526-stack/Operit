@@ -45,9 +45,11 @@ import com.cynosure.operit.data.model.LogicNode
 import com.cynosure.operit.data.model.LogicOperator
 import com.cynosure.operit.data.model.ExtractNode
 import com.cynosure.operit.data.model.ExtractMode
+import com.cynosure.operit.data.model.GlobalRefNode
 import com.cynosure.operit.data.model.ParameterValue
 import com.cynosure.operit.data.model.ToolParameterSchema
 import com.cynosure.operit.data.model.WorkflowExecutionRecord
+import com.cynosure.operit.data.model.WorkflowGlobalNode
 import com.cynosure.operit.ui.components.CustomScaffold
 import com.cynosure.operit.ui.features.workflow.viewmodel.WorkflowViewModel
 import com.cynosure.operit.ui.features.workflow.components.GridWorkflowCanvas
@@ -103,6 +105,7 @@ fun WorkflowDetailScreen(
     onNavigateBack: () -> Unit,
     viewModel: WorkflowViewModel = viewModel()
 ) {
+    val context = LocalContext.current
     var showEditDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showTriggerResult by remember { mutableStateOf<String?>(null) }
@@ -114,6 +117,10 @@ fun WorkflowDetailScreen(
     var isFabMenuExpanded by remember { mutableStateOf(false) }
     var showExecutionLogDialog by remember { mutableStateOf(false) }
     var showExecutionLogsForNodeId by remember { mutableStateOf<String?>(null) }
+    var showGlobalNodeDialog by remember { mutableStateOf(false) }
+    var showGlobalNodePicker by remember { mutableStateOf(false) }
+    var editingGlobalNode by remember { mutableStateOf<WorkflowGlobalNode?>(null) }
+    var creatingGlobalNode by remember { mutableStateOf(false) }
 
     LaunchedEffect(workflowId) {
         viewModel.loadWorkflow(workflowId)
@@ -123,6 +130,7 @@ fun WorkflowDetailScreen(
     val nodeExecutionStates by viewModel.nodeExecutionStates.collectAsState()
     val runningWorkflowIds by viewModel.runningWorkflowIds.collectAsState()
     val latestExecutionRecord = viewModel.latestExecutionRecord
+    val globalNodes by viewModel.globalNodes.collectAsState()
     val isWorkflowRunning = runningWorkflowIds.contains(workflowId)
 
     CustomScaffold(
@@ -179,6 +187,22 @@ fun WorkflowDetailScreen(
                                 icon = Icons.Default.Add,
                                 onClick = {
                                     showAddNodeDialog = true
+                                    isFabMenuExpanded = false
+                                }
+                            )
+                            SpeedDialAction(
+                                text = stringResource(R.string.workflow_global_node_add_reference),
+                                icon = Icons.Default.Add,
+                                onClick = {
+                                    showGlobalNodePicker = true
+                                    isFabMenuExpanded = false
+                                }
+                            )
+                            SpeedDialAction(
+                                text = stringResource(R.string.workflow_global_node_manage),
+                                icon = Icons.Default.Edit,
+                                onClick = {
+                                    showGlobalNodeDialog = true
                                     isFabMenuExpanded = false
                                 }
                             )
@@ -279,6 +303,7 @@ fun WorkflowDetailScreen(
                                 nodes = workflow.nodes,
                                 connections = workflow.connections,
                                 nodeExecutionStates = nodeExecutionStates,
+                                availableGlobalNodeIds = globalNodes.map { it.id }.toSet(),
                                 onNodePositionChanged = { nodeId, x, y ->
                                     viewModel.updateNodePosition(workflowId, nodeId, x, y)
                                 },
@@ -478,11 +503,71 @@ fun WorkflowDetailScreen(
                             showDeleteNodeDialog = nodeId
                             showNodeActionMenu = null
                         },
+                        onEditGlobalTemplate = (node as? GlobalRefNode)?.let { reference ->
+                            {
+                                editingGlobalNode = globalNodes.find { it.id == reference.globalNodeId }
+                                if (editingGlobalNode == null) {
+                                    viewModel.showError(context.getString(R.string.workflow_global_node_not_found, reference.globalNodeId))
+                                }
+                            }
+                        },
+                        onUnlinkGlobalReference = if (node is GlobalRefNode) {
+                            {
+                                viewModel.unlinkGlobalReference(workflowId, node.id)
+                            }
+                        } else null,
                         onDismiss = {
                             showNodeActionMenu = null
                         }
                     )
                 }
+            }
+
+            if (showGlobalNodePicker) {
+                GlobalNodePickerDialog(
+                    globalNodes = globalNodes,
+                    onDismiss = { showGlobalNodePicker = false },
+                    onSelect = { globalNode ->
+                        viewModel.addGlobalReference(workflowId, globalNode) {
+                            showGlobalNodePicker = false
+                        }
+                    }
+                )
+            }
+
+            if (showGlobalNodeDialog) {
+                GlobalNodeManagerDialog(
+                    globalNodes = globalNodes,
+                    onDismiss = { showGlobalNodeDialog = false },
+                    onCreate = { creatingGlobalNode = true },
+                    onEdit = { editingGlobalNode = it },
+                    onDelete = { viewModel.deleteGlobalNode(it) }
+                )
+            }
+
+            if (creatingGlobalNode && workflow != null) {
+                NodeDialog(
+                    workflow = workflow,
+                    allowTrigger = false,
+                    onDismiss = { creatingGlobalNode = false },
+                    onConfirm = { node ->
+                        viewModel.createGlobalNode(node) { creatingGlobalNode = false }
+                    }
+                )
+            }
+
+            editingGlobalNode?.let { globalNode ->
+                NodeDialog(
+                    node = globalNode.nodeData,
+                    workflow = workflow ?: return@let,
+                    allowTrigger = false,
+                    onDismiss = { editingGlobalNode = null },
+                    onConfirm = { node ->
+                        viewModel.updateGlobalNode(
+                            globalNode.copy(name = node.name, description = node.description, nodeData = node)
+                        ) { editingGlobalNode = null }
+                    }
+                )
             }
 
             // 节点编辑对话框
@@ -530,6 +615,82 @@ fun WorkflowDetailScreen(
             }
         }
     }
+}
+
+@Composable
+private fun GlobalNodePickerDialog(
+    globalNodes: List<WorkflowGlobalNode>,
+    onDismiss: () -> Unit,
+    onSelect: (WorkflowGlobalNode) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.workflow_global_node_select)) },
+        text = {
+            LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                if (globalNodes.isEmpty()) {
+                    item { Text(stringResource(R.string.workflow_global_node_empty)) }
+                }
+                items(globalNodes, key = { it.id }) { globalNode ->
+                    ListItem(
+                        headlineContent = { Text(globalNode.name) },
+                        supportingContent = { Text(globalNode.description) },
+                        modifier = Modifier.fillMaxWidth(),
+                        trailingContent = {
+                            TextButton(onClick = { onSelect(globalNode) }) {
+                                Text(stringResource(R.string.workflow_global_node_add_reference))
+                            }
+                        }
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel_action)) }
+        }
+    )
+}
+
+@Composable
+private fun GlobalNodeManagerDialog(
+    globalNodes: List<WorkflowGlobalNode>,
+    onDismiss: () -> Unit,
+    onCreate: () -> Unit,
+    onEdit: (WorkflowGlobalNode) -> Unit,
+    onDelete: (String) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.workflow_global_node_manage)) },
+        text = {
+            LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                item {
+                    Button(onClick = onCreate, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.workflow_global_node_create))
+                    }
+                }
+                items(globalNodes, key = { it.id }) { globalNode ->
+                    ListItem(
+                        headlineContent = { Text(globalNode.name) },
+                        supportingContent = { Text(globalNode.description) },
+                        trailingContent = {
+                            Row {
+                                IconButton(onClick = { onEdit(globalNode) }) {
+                                    Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.workflow_global_node_edit_template))
+                                }
+                                IconButton(onClick = { onDelete(globalNode.id) }) {
+                                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete_action))
+                                }
+                            }
+                        }
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.workflow_close)) }
+        }
+    )
 }
 
 @Composable
@@ -679,6 +840,7 @@ private fun buildExecuteActionConfig(
 fun NodeDialog(
     node: WorkflowNode? = null, // null 表示创建新节点，非 null 表示编辑
     workflow: Workflow, // 用于获取前置节点信息
+    allowTrigger: Boolean = true,
     onDismiss: () -> Unit,
     onConfirm: (WorkflowNode) -> Unit
 ) {
@@ -692,7 +854,8 @@ fun NodeDialog(
         is ConditionNode -> "condition"
         is LogicNode -> "logic"
         is ExtractNode -> "extract"
-        else -> "trigger"
+        is GlobalRefNode -> "global_ref"
+        else -> if (allowTrigger) "trigger" else "execute"
     }
     
     var nodeType by remember { mutableStateOf(initialNodeType) }
@@ -953,7 +1116,7 @@ fun NodeDialog(
         "condition" to stringResource(R.string.workflow_node_type_condition),
         "logic" to stringResource(R.string.workflow_node_type_logic),
         "extract" to stringResource(R.string.workflow_node_type_extract)
-    )
+    ).filterKeys { allowTrigger || it != "trigger" }
 
     val triggerTypes = mapOf(
         "manual" to stringResource(R.string.workflow_trigger_type_manual),
@@ -1981,6 +2144,7 @@ fun NodeDialog(
                             "condition" -> context.getString(R.string.workflow_node_default_name_condition)
                             "logic" -> context.getString(R.string.workflow_node_default_name_logic)
                             "extract" -> context.getString(R.string.workflow_node_default_name_extract)
+                            "global_ref" -> node?.name.orEmpty()
                             else -> nodeTypes[nodeType] ?: context.getString(R.string.workflow_node_fallback)
                         }
                     } else {
@@ -2062,6 +2226,10 @@ fun NodeDialog(
                                 randomStringCharset = extractRandomStringCharset,
                                 useFixed = extractUseFixed,
                                 fixedValue = extractFixedValue
+                            )
+                            is GlobalRefNode -> node.copy(
+                                name = nodeName,
+                                description = description
                             )
                             else -> node
                         }

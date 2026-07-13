@@ -36,6 +36,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -166,14 +167,14 @@ fun DrawerContent(
         }
         val workflowRepository = remember(context) { WorkflowRepository(context) }
         val activePackageCount by
-                produceState(initialValue = 0, selectedRouteId) {
+                produceState(initialValue = 0, packageManager) {
                         value =
                                 withContext(Dispatchers.IO) {
                                         packageManager.getEnabledPackageNames().size
                                 }
                 }
         val workflowCount by
-                produceState(initialValue = 0, selectedRouteId) {
+                produceState(initialValue = 0, workflowRepository) {
                         value =
                                 withContext(Dispatchers.IO) {
                                         workflowRepository.getAllWorkflows().getOrDefault(emptyList()).size
@@ -185,7 +186,6 @@ fun DrawerContent(
                                 SidebarPermissionStatus(
                                         badgeTextResId = R.string.sidebar_status_normal
                                 ),
-                        selectedRouteId,
                         preferredPermissionLevel
                 ) {
                         value =
@@ -196,14 +196,13 @@ fun DrawerContent(
                                         )
                                 }
                 }
-        val primaryNavItems =
-                remember(navItems) {
-                        navItems.filterNot {
-                                it in fixedBottomItems ||
-                                        it in quickActionItems ||
-                                        it == NavItem.ShizukuCommands
-                        }
+        val primaryNavItems = remember(navItems) {
+                navItems.filterNot {
+                        it in fixedBottomItems ||
+                                it in quickActionItems ||
+                                it == NavItem.ShizukuCommands
                 }
+        }
         val handleScreenSelection: (Screen) -> Unit = { screen ->
                 val shouldCloseBeforeNavigate =
                         drawerState.currentValue == DrawerValue.Open ||
@@ -318,7 +317,7 @@ fun CollapsedDrawerContent(
                         color = Color.Transparent,
                         shape = CircleShape
                 ) {
-                        IconButton(onClick = { }) {
+                        Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                         imageVector =
                                                 if (isNetworkAvailable) Icons.Default.Wifi
@@ -338,6 +337,7 @@ fun CollapsedDrawerContent(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 for (item in navItems) {
+                        key(item.route) {
                         val selectedGlassOverlayColor =
                                 if (selectedItem == item) {
                                         appearance.selectedContainerColor.copy(alpha = 0.18f)
@@ -391,6 +391,8 @@ fun CollapsedDrawerContent(
                         }
                 }
 
+                }
+
                 if (pluginEntries.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(12.dp))
                         HorizontalDivider(
@@ -399,6 +401,7 @@ fun CollapsedDrawerContent(
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         pluginEntries.forEach { entry ->
+                                key(entry.routeId) {
                                 val selectedGlassOverlayColor =
                                         if (selectedRouteId == entry.routeId) {
                                                 appearance.selectedContainerColor.copy(alpha = 0.18f)
@@ -441,8 +444,9 @@ fun CollapsedDrawerContent(
                                                                 },
                                                         modifier = Modifier.size(24.dp)
                                                 )
-                                        }
                                 }
+                        }
+                        }
                         }
                 }
 
@@ -526,6 +530,7 @@ SidebarInfoCard(
         Spacer(modifier = Modifier.height(6.dp))
 
         navItems.forEach { item ->
+                key(item.route) {
                 CompactNavigationDrawerItem(
                         icon = item.icon,
                         label = menuNameOverrides[item.route] ?: stringResource(id = item.titleResId),
@@ -533,6 +538,7 @@ SidebarInfoCard(
                         appearance = appearance,
                         onClick = { onNavItemClick(item) }
                 )
+                }
         }
         if (pluginEntries.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(14.dp))
@@ -545,6 +551,7 @@ SidebarInfoCard(
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 pluginEntries.forEach { entry ->
+                        key(entry.routeId) {
                         CompactNavigationDrawerItem(
                                 icon = entry.icon,
                                 label = menuNameOverrides[entry.routeId] ?: entry.title,
@@ -552,6 +559,7 @@ SidebarInfoCard(
                                 appearance = appearance,
                                 onClick = { onNavigationEntryClick(entry) }
                         )
+                        }
                 }
         }
 }

@@ -596,6 +596,7 @@ AVAILABLE_TOOLS_SECTION""".trimIndent()
           enableGroupOrchestrationHint: Boolean = false,
           groupOrchestrationRoleName: String = "",
           groupParticipantNamesText: String = "",
+          groupSystemPrompt: String = "",
           hookMetadata: Map<String, Any?> = emptyMap(),
           dispatchSystemPromptComposeHooks: (PromptHookContext) -> PromptHookContext = PromptHookRegistry::dispatchSystemPromptComposeHooks,
           dispatchToolPromptComposeHooks: (PromptHookContext) -> PromptHookContext = PromptHookRegistry::dispatchToolPromptComposeHooks
@@ -628,7 +629,8 @@ AVAILABLE_TOOLS_SECTION""".trimIndent()
                         "allowedMcpServerNames" to allowedMcpServerNames.orEmpty().toList(),
                         "enableGroupOrchestrationHint" to enableGroupOrchestrationHint,
                         "groupOrchestrationRoleName" to groupOrchestrationRoleName,
-                        "groupParticipantNamesText" to groupParticipantNamesText
+                        "groupParticipantNamesText" to groupParticipantNamesText,
+                        "groupSystemPrompt" to groupSystemPrompt
                     ) + hookMetadata
             )
         )
@@ -668,6 +670,9 @@ AVAILABLE_TOOLS_SECTION""".trimIndent()
           roleName = safeRoleName,
           participantNamesText = groupParticipantNamesText
       )
+    }
+    if (groupSystemPrompt.isNotBlank()) {
+      composedPrompt += "\n\n${groupSystemPrompt.trim()}"
     }
 
     val composeContext =

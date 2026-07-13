@@ -2,6 +2,8 @@ package com.cynosure.operit.ui.features.settings.components
 
 import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -51,6 +53,8 @@ import com.cynosure.operit.data.preferences.UserPreferencesManager
 import com.cynosure.operit.data.skill.SkillRepository
 import com.cynosure.operit.api.chat.EnhancedAIService
 import com.cynosure.operit.util.LocaleUtils
+import com.cynosure.operit.util.FileUtils
+import java.io.File
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -74,6 +78,9 @@ fun CharacterCardDialog(
     var otherContentVoice by remember(characterCard.id) { mutableStateOf(characterCard.otherContentVoice) }
     var attachedTagIds by remember(characterCard.id) { mutableStateOf(characterCard.attachedTagIds) }
     var advancedCustomPrompt by remember(characterCard.id) { mutableStateOf(characterCard.advancedCustomPrompt) }
+    var customPromptFilePaths by remember(characterCard.id) {
+        mutableStateOf(characterCard.customPromptFilePaths)
+    }
     var marks by remember(characterCard.id) { mutableStateOf(characterCard.marks) }
     var chatModelBindingMode by remember(characterCard.id) {
         mutableStateOf(CharacterCardChatModelBindingMode.normalize(characterCard.chatModelBindingMode))
@@ -133,6 +140,31 @@ fun CharacterCardDialog(
     }
     val avatarUri by userPreferencesManager.getAiAvatarForCharacterCardFlow(characterCard.id)
         .collectAsState(initial = null)
+    val customPromptFilePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenMultipleDocuments()
+    ) { uris ->
+        if (uris.isEmpty()) return@rememberLauncherForActivityResult
+        scope.launch {
+            try {
+                val copiedPaths = uris.map { uri ->
+                    FileUtils.copyFileToInternalStorage(
+                        context = context,
+                        uri = uri,
+                        uniqueName = "character_prompt_${characterCard.id}"
+                    )?.path ?: throw IllegalStateException(
+                        context.getString(R.string.character_card_prompt_file_copy_failed)
+                    )
+                }
+                customPromptFilePaths = (customPromptFilePaths + copiedPaths).distinct()
+            } catch (e: Exception) {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.character_card_prompt_file_copy_failed),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         modelConfigManager.initializeIfNeeded()
@@ -880,6 +912,47 @@ fun CharacterCardDialog(
                             }
                         )
 
+                        OutlinedButton(
+                            onClick = { customPromptFilePicker.launch(arrayOf("text/*", "application/json")) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.AttachFile, contentDescription = null)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(stringResource(R.string.character_card_add_prompt_files))
+                        }
+
+                        customPromptFilePaths.forEach { filePath ->
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(start = 12.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = File(filePath).name,
+                                        modifier = Modifier.weight(1f),
+                                        maxLines = 1,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                    IconButton(
+                                        onClick = {
+                                            customPromptFilePaths = customPromptFilePaths - filePath
+                                        }
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = stringResource(R.string.character_card_remove_prompt_file)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
                         Spacer(modifier = Modifier.height(6.dp))
 
                         // 备注
@@ -946,6 +1019,7 @@ fun CharacterCardDialog(
                                     otherContentVoice = otherContentVoice,
                                     attachedTagIds = attachedTagIds,
                                     advancedCustomPrompt = advancedCustomPrompt,
+                                    customPromptFilePaths = customPromptFilePaths,
                                     marks = marks,
                                     chatModelBindingMode = CharacterCardChatModelBindingMode.normalize(chatModelBindingMode),
                                     chatModelConfigId = if (

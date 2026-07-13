@@ -3610,6 +3610,9 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="character_card_tool_access_denied_runtime">Este cartão de personagem não permite o uso desta ferramenta/fonte</string>
     <string name="character_card_custom_prompt">Palavras de prompt personalizadas</string>
     <string name="character_card_custom_prompt_placeholder">Palavras de prompt personalizadas avançadas...</string>
+    <string name="character_card_add_prompt_files">Add prompt files</string>
+    <string name="character_card_remove_prompt_file">Remove prompt file</string>
+    <string name="character_card_prompt_file_copy_failed">Unable to save prompt file</string>
     <string name="character_card_marks">Observação</string>
     <string name="character_card_marks_placeholder">Comentários privados não afetarão a IA...</string>
     <string name="character_card_edit_name">Editar nome</string>
@@ -6785,6 +6788,8 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="show_message_timestamp_description">Exibir o horário da mensagem na parte inferior das mensagens da IA</string>
     <string name="chat_message_timestamp_compact">horário: %1$s</string>
     <string name="memory_auto_save_settings_title">Salvamento automático de memória</string>
+    <string name="memory_save_prompt_title">Memory save prompt</string>
+    <string name="memory_save_prompt_description">Appended to the system prompt for manual and automatic memory saves. Leave empty to append nothing.</string>
     <string name="memory_auto_save_interval_minutes">Intervalo de salvamento automático (minutos)</string>
     <string name="character_card_memory_switch_confirm_title">Alterar vinculação de perfil de memória do cartão de personagem</string>
     <string name="character_card_memory_switch_confirm_message">O cartão de personagem atual já possui um perfil de memória vinculado. Continuar alterará a vinculação do perfil de memória deste cartão, sem modificar o perfil de memória global.</string>
@@ -7051,4 +7056,9 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="ai_message_use_package_failed">Falha na chamada de use_package: %1$s</string>
     <string name="ai_message_use_package_empty">O retorno de use_package está vazio.</string>
     <string name="ai_message_package_warmup_item">%1$d. Pacote %2$s (atingido %3$d vezes)</string>
+    <string name="play_all_conversation">Reproduzir todas as mensagens da IA</string>
+    <string name="stop_play_all">Parar toda a reprodução</string>
+    <string name="toolbox_sort_default">Ordem padrão</string>
+    <string name="toolbox_sort_name_asc">Nome A-Z</string>
+    <string name="toolbox_sort_name_desc">Nome Z-A</string>
 </resources>

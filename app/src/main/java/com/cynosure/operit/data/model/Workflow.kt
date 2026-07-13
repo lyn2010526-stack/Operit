@@ -213,4 +213,3 @@ data class GlobalRefNode(
     override var position: NodePosition = NodePosition(0f, 0f),
     var globalNodeId: String = "" // 引用的全局节点 ID
 ) : WorkflowNode()
-

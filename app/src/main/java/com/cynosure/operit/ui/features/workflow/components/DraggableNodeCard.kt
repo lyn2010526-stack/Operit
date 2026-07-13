@@ -35,6 +35,7 @@ import com.cynosure.operit.data.model.ExecuteNode
 import com.cynosure.operit.data.model.ConditionNode
 import com.cynosure.operit.data.model.LogicNode
 import com.cynosure.operit.data.model.ExtractNode
+import com.cynosure.operit.data.model.GlobalRefNode
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -53,17 +54,21 @@ fun DraggableNodeCard(
     onDragCancel: () -> Unit,
     onLongPress: () -> Unit,
     onClick: () -> Unit,
+    isMissingGlobalReference: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val coroutineScope = rememberCoroutineScope()
     
     // 根据执行状态选择边框颜色
-    val executionBorderColor = when (executionState) {
+    val executionBorderColor = when {
+        isMissingGlobalReference -> Color(0xFFF44336)
+        else -> when (executionState) {
         is NodeExecutionState.Running -> Color(0xFF2196F3) // 蓝色
         is NodeExecutionState.Success -> Color(0xFF4CAF50) // 绿色
         is NodeExecutionState.Skipped -> Color(0xFF9E9E9E) // 灰色
         is NodeExecutionState.Failed -> Color(0xFFF44336) // 红色
         else -> null
+        }
     }
     
     // 根据节点类型选择颜色和图标
@@ -102,6 +107,13 @@ fun DraggableNodeCard(
             borderColor = Color(0xFF4DB6AC),
             icon = Icons.Default.Settings,
             label = stringResource(R.string.workflow_node_label_extract)
+        )
+        is GlobalRefNode -> NodeStyle(
+            primaryColor = if (isMissingGlobalReference) Color(0xFFF44336) else Color(0xFF607D8B),
+            backgroundColor = Color(0xFFECEFF1),
+            borderColor = if (isMissingGlobalReference) Color(0xFFF44336) else Color(0xFF90A4AE),
+            icon = Icons.Default.Settings,
+            label = stringResource(R.string.workflow_node_label_global_ref)
         )
         else -> NodeStyle(
             primaryColor = Color(0xFF9E9E9E),
@@ -310,6 +322,14 @@ fun DraggableNodeCard(
                             else -> {}
                         }
                     }
+                } else if (isMissingGlobalReference) {
+                    Text(
+                        text = stringResource(R.string.workflow_global_node_missing),
+                        fontSize = 9.sp,
+                        color = Color(0xFFF44336),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 } else if (node.description.isNotEmpty()) {
                     Text(
                         text = node.description,
@@ -336,4 +356,3 @@ private data class NodeStyle(
     val icon: androidx.compose.ui.graphics.vector.ImageVector,
     val label: String
 )
-

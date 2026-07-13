@@ -507,18 +507,10 @@ class WorkflowExecutor(private val context: Context) {
         return dependencies.toList()
     }
 
-    private fun resolveGlobalNodes(workflow: Workflow): List<WorkflowNode> {
+    internal suspend fun resolveGlobalNodes(workflow: Workflow): List<WorkflowNode> {
         return workflow.nodes.map { node ->
-            if (node is GlobalRefNode && node.globalNodeId.isNotBlank()) {
-                val global = globalNodeManager.getGlobalNode(node.globalNodeId)
-                if (global != null) {
-                    global.nodeData
-                } else {
-                    node
-                }
-            } else {
-                node
-            }
+            if (node !is GlobalRefNode) return@map node
+            globalNodeManager.resolveReference(node).getOrThrow()
         }
     }
     

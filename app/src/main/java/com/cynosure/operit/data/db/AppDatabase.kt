@@ -9,6 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.cynosure.operit.data.dao.ChatDao
 import com.cynosure.operit.data.dao.MessageDao
 import com.cynosure.operit.data.dao.MessageVariantDao
+import com.cynosure.operit.data.dao.LanSyncDao
 import com.cynosure.operit.data.dao.TaskTraceDao
 import com.cynosure.operit.data.dao.ValidationResultDao
 import com.cynosure.operit.data.model.ChatEntity
@@ -16,11 +17,27 @@ import com.cynosure.operit.data.model.MessageEntity
 import com.cynosure.operit.data.model.MessageVariantEntity
 import com.cynosure.operit.data.model.TaskTraceEntity
 import com.cynosure.operit.data.model.ValidationResultEntity
+import com.cynosure.operit.data.model.LanSyncConflictEntity
+import com.cynosure.operit.data.model.LanSyncCursorEntity
+import com.cynosure.operit.data.model.LanSyncEntityStateEntity
+import com.cynosure.operit.data.model.LanSyncJournalEntity
+import com.cynosure.operit.data.model.LanSyncPeerEntity
 
 /** 应用数据库，包含聊天表和消息表 */
 @Database(
-    entities = [ChatEntity::class, MessageEntity::class, MessageVariantEntity::class, TaskTraceEntity::class, ValidationResultEntity::class],
-    version = 21,
+    entities = [
+        ChatEntity::class,
+        MessageEntity::class,
+        MessageVariantEntity::class,
+        TaskTraceEntity::class,
+        ValidationResultEntity::class,
+        LanSyncPeerEntity::class,
+        LanSyncCursorEntity::class,
+        LanSyncEntityStateEntity::class,
+        LanSyncJournalEntity::class,
+        LanSyncConflictEntity::class,
+    ],
+    version = 23,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -36,6 +53,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun taskTraceDao(): TaskTraceDao
 
     abstract fun validationResultDao(): ValidationResultDao
+
+    abstract fun lanSyncDao(): LanSyncDao
 
     companion object {
         @Volatile
@@ -270,6 +289,69 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
+        private val MIGRATION_21_22 =
+            object : Migration(21, 22) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL("ALTER TABLE chats ADD COLUMN `revision` INTEGER NOT NULL DEFAULT 1")
+                    db.execSQL("ALTER TABLE chats ADD COLUMN `deletedAt` INTEGER")
+                    db.execSQL("ALTER TABLE message_variants ADD COLUMN `syncId` TEXT NOT NULL DEFAULT ''")
+                    db.execSQL("ALTER TABLE message_variants ADD COLUMN `revision` INTEGER NOT NULL DEFAULT 1")
+                    db.execSQL("ALTER TABLE message_variants ADD COLUMN `updatedAt` INTEGER NOT NULL DEFAULT 0")
+                    db.execSQL("ALTER TABLE message_variants ADD COLUMN `deletedAt` INTEGER")
+                    db.execSQL(
+                        "UPDATE message_variants SET syncId = lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-' || lower(hex(randomblob(2))) || '-' || lower(hex(randomblob(2))) || '-' || lower(hex(randomblob(6))), updatedAt = messageTimestamp WHERE syncId = ''"
+                    )
+                    db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_message_variants_syncId` ON `message_variants` (`syncId`)")
+                    db.execSQL(
+                        """
+                        CREATE TABLE IF NOT EXISTS `lan_sync_peers` (
+                            `deviceId` TEXT NOT NULL,
+                            `deviceName` TEXT NOT NULL,
+                            `host` TEXT NOT NULL,
+                            `port` INTEGER NOT NULL,
+                            `outgoingToken` TEXT NOT NULL,
+                            `incomingToken` TEXT NOT NULL,
+                            `enabledCollections` TEXT NOT NULL,
+                            `lastSeenAt` INTEGER NOT NULL,
+                            `lastSyncAt` INTEGER NOT NULL,
+                            `lastError` TEXT,
+                            PRIMARY KEY(`deviceId`)
+                        )
+                        """.trimIndent()
+                    )
+                    db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_lan_sync_peers_deviceId` ON `lan_sync_peers` (`deviceId`)")
+                    db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_lan_sync_peers_incomingToken` ON `lan_sync_peers` (`incomingToken`)")
+                    db.execSQL(
+                        "CREATE TABLE IF NOT EXISTS `lan_sync_cursors` (`peerDeviceId` TEXT NOT NULL, `collection` TEXT NOT NULL, `lastSequence` INTEGER NOT NULL, `lastSyncAt` INTEGER NOT NULL, PRIMARY KEY(`peerDeviceId`, `collection`))"
+                    )
+                    db.execSQL(
+                        "CREATE TABLE IF NOT EXISTS `lan_sync_entity_state` (`collection` TEXT NOT NULL, `entityId` TEXT NOT NULL, `revision` INTEGER NOT NULL, `payloadHash` TEXT NOT NULL, `updatedAt` INTEGER NOT NULL, `deletedAt` INTEGER, PRIMARY KEY(`collection`, `entityId`))"
+                    )
+                    db.execSQL("CREATE INDEX IF NOT EXISTS `index_lan_sync_entity_state_updatedAt` ON `lan_sync_entity_state` (`updatedAt`)")
+                    db.execSQL(
+                        "CREATE TABLE IF NOT EXISTS `lan_sync_journal` (`sequence` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `collection` TEXT NOT NULL, `entityId` TEXT NOT NULL, `operation` TEXT NOT NULL, `revision` INTEGER NOT NULL, `baseHash` TEXT, `payloadHash` TEXT NOT NULL, `payload` TEXT, `updatedAt` INTEGER NOT NULL)"
+                    )
+                    db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_lan_sync_journal_collection_sequence` ON `lan_sync_journal` (`collection`, `sequence`)")
+                    db.execSQL(
+                        "CREATE TABLE IF NOT EXISTS `lan_sync_conflicts` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `peerDeviceId` TEXT NOT NULL, `collection` TEXT NOT NULL, `entityId` TEXT NOT NULL, `localRevision` INTEGER NOT NULL, `remoteRevision` INTEGER NOT NULL, `localHash` TEXT, `remoteHash` TEXT NOT NULL, `remotePayload` TEXT, `reason` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `resolvedAt` INTEGER)"
+                    )
+                    db.execSQL("CREATE INDEX IF NOT EXISTS `index_lan_sync_conflicts_peerDeviceId_resolvedAt` ON `lan_sync_conflicts` (`peerDeviceId`, `resolvedAt`)")
+                }
+            }
+
+        private val MIGRATION_22_23 =
+            object : Migration(22, 23) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL("ALTER TABLE lan_sync_conflicts ADD COLUMN `remoteSequence` INTEGER NOT NULL DEFAULT 0")
+                    db.execSQL("ALTER TABLE lan_sync_conflicts ADD COLUMN `remoteOperation` TEXT NOT NULL DEFAULT 'UPSERT'")
+                    db.execSQL("ALTER TABLE lan_sync_conflicts ADD COLUMN `remoteUpdatedAt` INTEGER NOT NULL DEFAULT 0")
+                    db.execSQL("ALTER TABLE lan_sync_conflicts ADD COLUMN `resolution` TEXT")
+                    db.execSQL(
+                        "CREATE INDEX IF NOT EXISTS `index_lan_sync_conflicts_peerDeviceId_collection_entityId_resolvedAt` ON `lan_sync_conflicts` (`peerDeviceId`, `collection`, `entityId`, `resolvedAt`)"
+                    )
+                }
+            }
+
         // 定义从版本2到3的迁移
         private val MIGRATION_2_3 =
             object : Migration(2, 3) {
@@ -387,7 +469,9 @@ abstract class AppDatabase : RoomDatabase() {
                                 MIGRATION_17_18,
                                 MIGRATION_18_19,
                                 MIGRATION_19_20,
-                                MIGRATION_20_21
+                                MIGRATION_20_21,
+                                MIGRATION_21_22,
+                                MIGRATION_22_23
                             ) // 添加新的迁移
                             .build()
                     INSTANCE = instance

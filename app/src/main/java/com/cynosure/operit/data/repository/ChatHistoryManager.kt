@@ -1011,7 +1011,11 @@ class ChatHistoryManager private constructor(private val context: Context) {
                         .filter { it.variantIndex > replacementVariant.variantIndex }
                         .forEach { variant ->
                             messageVariantDao.updateVariant(
-                                variant.copy(variantIndex = variant.variantIndex - 1),
+                                variant.copy(
+                                    variantIndex = variant.variantIndex - 1,
+                                    revision = variant.revision + 1L,
+                                    updatedAt = System.currentTimeMillis(),
+                                ),
                             )
                         }
                 } else {
@@ -1030,7 +1034,11 @@ class ChatHistoryManager private constructor(private val context: Context) {
                         .filter { it.variantIndex > targetVariant.variantIndex }
                         .forEach { variant ->
                             messageVariantDao.updateVariant(
-                                variant.copy(variantIndex = variant.variantIndex - 1),
+                                variant.copy(
+                                    variantIndex = variant.variantIndex - 1,
+                                    revision = variant.revision + 1L,
+                                    updatedAt = System.currentTimeMillis(),
+                                ),
                             )
                         }
                     val newSelectedVariantIndex =
@@ -1090,6 +1098,10 @@ class ChatHistoryManager private constructor(private val context: Context) {
                                 variantIndex = message.selectedVariantIndex,
                                 message = message,
                                 variantId = existingVariant.variantId,
+                                syncId = existingVariant.syncId,
+                                revision = existingVariant.revision + 1L,
+                                updatedAt = System.currentTimeMillis(),
+                                deletedAt = existingVariant.deletedAt,
                             )
                         )
                         messageDao.updateSelectedVariantIndex(
@@ -1650,6 +1662,36 @@ class ChatHistoryManager private constructor(private val context: Context) {
             } catch (e: Exception) {
                 AppLogger.e(TAG, "按区间加载聊天消息失败", e)
                 emptyList()
+            }
+        }
+    }
+
+    suspend fun loadReadableAiMessageContents(
+        chatId: String,
+        offset: Int,
+        limit: Int,
+    ): List<String> {
+        return withContext(Dispatchers.IO) {
+            try {
+                messageDao.getReadableAiMessageContentsAscRange(
+                    chatId = chatId,
+                    offset = offset,
+                    limit = limit,
+                )
+            } catch (e: Exception) {
+                AppLogger.e(TAG, "分页加载 AI 朗读消息失败", e)
+                emptyList()
+            }
+        }
+    }
+
+    suspend fun hasReadableAiMessage(chatId: String): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                messageDao.existsReadableAiMessage(chatId)
+            } catch (e: Exception) {
+                AppLogger.e(TAG, "检查 AI 朗读消息失败", e)
+                false
             }
         }
     }

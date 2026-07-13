@@ -498,6 +498,7 @@ class ConversationService(
             roleCardId: String? = null,
             enableGroupOrchestrationHint: Boolean = false,
             groupParticipantNamesText: String? = null,
+            groupSystemPrompt: String? = null,
             proxySenderName: String? = null,
             hasImageRecognition: Boolean = false,
             hasAudioRecognition: Boolean = false,
@@ -528,6 +529,7 @@ class ConversationService(
                             "customSystemPromptTemplate" to customSystemPromptTemplate,
                             "enableGroupOrchestrationHint" to enableGroupOrchestrationHint,
                             "groupParticipantNamesText" to groupParticipantNamesText,
+                            "groupSystemPrompt" to groupSystemPrompt,
                             "proxySenderName" to proxySenderName,
                             "hasImageRecognition" to hasImageRecognition,
                             "hasAudioRecognition" to hasAudioRecognition,
@@ -632,6 +634,7 @@ class ConversationService(
                     groupOrchestrationRoleName = activeCard?.name?.takeIf { it.isNotBlank() }
                         ?: context.getString(R.string.app_name),
                     groupParticipantNamesText = groupParticipantNamesText.orEmpty(),
+                    groupSystemPrompt = groupSystemPrompt.orEmpty(),
                     hookMetadata = activePromptMetadata,
                     dispatchSystemPromptComposeHooks = dispatchSystemPromptComposeHooks,
                     dispatchToolPromptComposeHooks = dispatchToolPromptComposeHooks

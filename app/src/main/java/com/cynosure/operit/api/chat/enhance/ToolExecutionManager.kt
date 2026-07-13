@@ -741,8 +741,15 @@ object ToolExecutionManager {
                 toolHandler.notifyToolExecutionStarted(invocation.tool)
 
                 val collectedResults = mutableListOf<ToolResult>()
+                var suppressedErrorCount = 0
                 val completed = withTimeoutOrNull(TOOL_EXECUTION_TIMEOUT_MS) {
                     executeToolSafely(invocation, executor, toolHandler).collect { result ->
+                        if (!result.success && result.error != null &&
+                            !toolHandler.shouldEmitToolError(invocation.tool, result.error)
+                        ) {
+                            suppressedErrorCount += 1
+                            return@collect
+                        }
                         collectedResults.add(result)
                         // 实时输出每个结果
                         val toolResultStatusContent =
@@ -774,6 +781,14 @@ object ToolExecutionManager {
                 }
 
                 if (collectedResults.isEmpty()) {
+                    if (suppressedErrorCount > 0) {
+                        return@withContext ToolResult(
+                            toolName = displayToolName,
+                            success = false,
+                            result = StringResultData(""),
+                            error = "Repeated identical tool error suppressed ($suppressedErrorCount)."
+                        )
+                    }
                     val emptyResult =
                         ToolResult(
                             toolName = displayToolName,

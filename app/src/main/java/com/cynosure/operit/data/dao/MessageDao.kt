@@ -12,15 +12,15 @@ import com.cynosure.operit.data.model.MessageEntity
 @Dao
 interface MessageDao {
     /** 获取消息总数 */
-    @Query("SELECT COUNT(*) FROM messages")
+    @Query("SELECT COUNT(*) FROM messages WHERE deletedAt IS NULL")
     suspend fun getTotalMessageCount(): Int
 
     /** 获取指定聊天的所有消息，按时间戳排序 */
-    @Query("SELECT * FROM messages WHERE chatId = :chatId ORDER BY timestamp ASC")
+    @Query("SELECT * FROM messages WHERE chatId = :chatId AND deletedAt IS NULL ORDER BY timestamp ASC")
     suspend fun getMessagesForChat(chatId: String): List<MessageEntity>
 
     @Query(
-        "SELECT COUNT(*) FROM messages WHERE chatId = :chatId AND (:upToTimestampInclusive IS NULL OR timestamp <= :upToTimestampInclusive)"
+        "SELECT COUNT(*) FROM messages WHERE chatId = :chatId AND deletedAt IS NULL AND (:upToTimestampInclusive IS NULL OR timestamp <= :upToTimestampInclusive)"
     )
     suspend fun countMessagesForChatUpToTimestamp(
         chatId: String,
@@ -33,7 +33,7 @@ interface MessageDao {
             (
                 SELECT COUNT(*)
                 FROM messages AS earlier
-                WHERE earlier.chatId = messages.chatId
+                WHERE earlier.chatId = messages.chatId AND earlier.deletedAt IS NULL
                     AND earlier.timestamp < messages.timestamp
             ) AS messageIndex,
             timestamp AS timestamp,
@@ -49,7 +49,7 @@ interface MessageDao {
             displayMode AS displayMode,
             isFavorite AS isFavorite
         FROM messages
-        WHERE chatId = :chatId
+         WHERE chatId = :chatId AND deletedAt IS NULL
         ORDER BY timestamp ASC
         """
     )
@@ -64,7 +64,7 @@ interface MessageDao {
             (
                 SELECT COUNT(*)
                 FROM messages AS earlier
-                WHERE earlier.chatId = messages.chatId
+                WHERE earlier.chatId = messages.chatId AND earlier.deletedAt IS NULL
                     AND earlier.timestamp < messages.timestamp
             ) AS messageIndex,
             timestamp AS timestamp,
@@ -78,7 +78,7 @@ interface MessageDao {
             displayMode AS displayMode,
             isFavorite AS isFavorite
         FROM messages
-        WHERE chatId = :chatId
+         WHERE chatId = :chatId AND deletedAt IS NULL
             AND NOT (sender = 'user' AND displayMode = 'HIDDEN_PLACEHOLDER')
             AND INSTR(LOWER(content), LOWER(:query)) > 0
         ORDER BY timestamp ASC
@@ -91,7 +91,7 @@ interface MessageDao {
     ): List<ChatMessageLocatorPreview>
 
     @Query(
-        "SELECT * FROM messages WHERE chatId = :chatId AND timestamp >= :startTimestampInclusive ORDER BY timestamp ASC"
+        "SELECT * FROM messages WHERE chatId = :chatId AND deletedAt IS NULL AND timestamp >= :startTimestampInclusive ORDER BY timestamp ASC"
     )
     suspend fun getMessagesForChatFromTimestampAsc(
         chatId: String,
@@ -101,7 +101,7 @@ interface MessageDao {
     @Query(
         """
         SELECT * FROM messages
-        WHERE chatId = :chatId
+        WHERE chatId = :chatId AND deletedAt IS NULL
             AND timestamp >= :startTimestampInclusive
             AND timestamp <= :endTimestampInclusive
         ORDER BY timestamp ASC
@@ -113,20 +113,34 @@ interface MessageDao {
         endTimestampInclusive: Long,
     ): List<MessageEntity>
 
-    @Query("SELECT * FROM messages WHERE chatId = :chatId ORDER BY timestamp ASC LIMIT :limit")
+    @Query("SELECT * FROM messages WHERE chatId = :chatId AND deletedAt IS NULL ORDER BY timestamp ASC LIMIT :limit")
     suspend fun getMessagesForChatAsc(chatId: String, limit: Int): List<MessageEntity>
 
-    @Query("SELECT * FROM messages WHERE chatId = :chatId ORDER BY timestamp DESC LIMIT :limit")
+    @Query("SELECT * FROM messages WHERE chatId = :chatId AND deletedAt IS NULL ORDER BY timestamp DESC LIMIT :limit")
     suspend fun getMessagesForChatDesc(chatId: String, limit: Int): List<MessageEntity>
 
-    @Query("SELECT * FROM messages WHERE chatId = :chatId ORDER BY timestamp ASC LIMIT :limit OFFSET :offset")
+    @Query("SELECT * FROM messages WHERE chatId = :chatId AND deletedAt IS NULL ORDER BY timestamp ASC LIMIT :limit OFFSET :offset")
     suspend fun getMessagesForChatAscRange(chatId: String, offset: Int, limit: Int): List<MessageEntity>
 
-    @Query("SELECT * FROM messages WHERE chatId = :chatId ORDER BY timestamp DESC LIMIT :limit OFFSET :offset")
+    @Query(
+        "SELECT content FROM messages WHERE chatId = :chatId AND deletedAt IS NULL AND sender = 'ai' AND TRIM(content) != '' ORDER BY timestamp ASC, messageId ASC LIMIT :limit OFFSET :offset"
+    )
+    suspend fun getReadableAiMessageContentsAscRange(
+        chatId: String,
+        offset: Int,
+        limit: Int,
+    ): List<String>
+
+    @Query(
+        "SELECT EXISTS(SELECT 1 FROM messages WHERE chatId = :chatId AND deletedAt IS NULL AND sender = 'ai' AND TRIM(content) != '' LIMIT 1)"
+    )
+    suspend fun existsReadableAiMessage(chatId: String): Boolean
+
+    @Query("SELECT * FROM messages WHERE chatId = :chatId AND deletedAt IS NULL ORDER BY timestamp DESC LIMIT :limit OFFSET :offset")
     suspend fun getMessagesForChatDescRange(chatId: String, offset: Int, limit: Int): List<MessageEntity>
 
     @Query(
-        "SELECT * FROM messages WHERE chatId = :chatId AND timestamp > :afterTimestampExclusive ORDER BY timestamp ASC LIMIT :limit"
+        "SELECT * FROM messages WHERE chatId = :chatId AND deletedAt IS NULL AND timestamp > :afterTimestampExclusive ORDER BY timestamp ASC LIMIT :limit"
     )
     suspend fun getMessagesForChatAfterTimestampExclusiveAsc(
         chatId: String,
@@ -137,7 +151,7 @@ interface MessageDao {
     @Query(
         """
         SELECT * FROM messages
-        WHERE chatId = :chatId
+        WHERE chatId = :chatId AND deletedAt IS NULL
             AND (:afterTimestampExclusive IS NULL OR timestamp > :afterTimestampExclusive)
             AND (:beforeTimestampExclusive IS NULL OR timestamp < :beforeTimestampExclusive)
             AND (:upToTimestampInclusive IS NULL OR timestamp <= :upToTimestampInclusive)
@@ -152,7 +166,7 @@ interface MessageDao {
     ): List<MessageEntity>
 
     @Query(
-        "SELECT * FROM messages WHERE chatId = :chatId AND timestamp <= :maxTimestamp ORDER BY timestamp DESC LIMIT :limit"
+        "SELECT * FROM messages WHERE chatId = :chatId AND deletedAt IS NULL AND timestamp <= :maxTimestamp ORDER BY timestamp DESC LIMIT :limit"
     )
     suspend fun getMessagesForChatBeforeTimestampDesc(
         chatId: String,
@@ -161,7 +175,7 @@ interface MessageDao {
     ): List<MessageEntity>
 
     @Query(
-        "SELECT * FROM messages WHERE chatId = :chatId AND timestamp < :beforeTimestampExclusive ORDER BY timestamp DESC LIMIT :limit"
+        "SELECT * FROM messages WHERE chatId = :chatId AND deletedAt IS NULL AND timestamp < :beforeTimestampExclusive ORDER BY timestamp DESC LIMIT :limit"
     )
     suspend fun getMessagesForChatBeforeTimestampExclusiveDesc(
         chatId: String,
@@ -170,7 +184,7 @@ interface MessageDao {
     ): List<MessageEntity>
 
     @Query(
-        "SELECT EXISTS(SELECT 1 FROM messages WHERE chatId = :chatId AND timestamp < :beforeTimestampExclusive LIMIT 1)"
+        "SELECT EXISTS(SELECT 1 FROM messages WHERE chatId = :chatId AND deletedAt IS NULL AND timestamp < :beforeTimestampExclusive LIMIT 1)"
     )
     suspend fun existsMessagesBeforeTimestamp(
         chatId: String,
@@ -178,7 +192,7 @@ interface MessageDao {
     ): Boolean
 
     @Query(
-        "SELECT EXISTS(SELECT 1 FROM messages WHERE chatId = :chatId AND timestamp > :afterTimestampExclusive LIMIT 1)"
+        "SELECT EXISTS(SELECT 1 FROM messages WHERE chatId = :chatId AND deletedAt IS NULL AND timestamp > :afterTimestampExclusive LIMIT 1)"
     )
     suspend fun existsMessagesAfterTimestamp(
         chatId: String,
@@ -186,12 +200,12 @@ interface MessageDao {
     ): Boolean
 
     @Query(
-        "SELECT timestamp FROM messages WHERE chatId = :chatId AND sender = 'summary' ORDER BY timestamp DESC LIMIT 1"
+        "SELECT timestamp FROM messages WHERE chatId = :chatId AND deletedAt IS NULL AND sender = 'summary' ORDER BY timestamp DESC LIMIT 1"
     )
     suspend fun getLatestSummaryTimestamp(chatId: String): Long?
 
     @Query(
-        "SELECT timestamp FROM messages WHERE chatId = :chatId AND sender = 'summary' AND timestamp < :beforeTimestampExclusive ORDER BY timestamp DESC LIMIT 1"
+        "SELECT timestamp FROM messages WHERE chatId = :chatId AND deletedAt IS NULL AND sender = 'summary' AND timestamp < :beforeTimestampExclusive ORDER BY timestamp DESC LIMIT 1"
     )
     suspend fun getLatestSummaryTimestampBefore(
         chatId: String,
@@ -199,7 +213,7 @@ interface MessageDao {
     ): Long?
 
     @Query(
-        "SELECT timestamp FROM messages WHERE chatId = :chatId AND sender = 'summary' AND timestamp <= :upToTimestampInclusive ORDER BY timestamp DESC LIMIT 1"
+        "SELECT timestamp FROM messages WHERE chatId = :chatId AND deletedAt IS NULL AND sender = 'summary' AND timestamp <= :upToTimestampInclusive ORDER BY timestamp DESC LIMIT 1"
     )
     suspend fun getLatestSummaryTimestampUpTo(
         chatId: String,
@@ -207,11 +221,11 @@ interface MessageDao {
     ): Long?
 
     @Query(
-        "SELECT EXISTS(SELECT 1 FROM messages WHERE chatId = :chatId AND sender = 'user' LIMIT 1)"
+        "SELECT EXISTS(SELECT 1 FROM messages WHERE chatId = :chatId AND deletedAt IS NULL AND sender = 'user' LIMIT 1)"
     )
     suspend fun existsUserMessage(chatId: String): Boolean
 
-    @Query("SELECT chatId AS chatId, COUNT(*) AS count FROM messages GROUP BY chatId")
+    @Query("SELECT chatId AS chatId, COUNT(*) AS count FROM messages WHERE deletedAt IS NULL GROUP BY chatId")
     suspend fun getMessageCountsByChatId(): List<ChatMessageCount>
 
     /** 插入单条消息并返回消息ID */
@@ -221,6 +235,15 @@ interface MessageDao {
     /** 批量插入消息 */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMessages(messages: List<MessageEntity>)
+
+    @Query("SELECT * FROM messages")
+    suspend fun getAllMessagesIncludingDeleted(): List<MessageEntity>
+
+    @Query("SELECT * FROM messages WHERE syncId = :syncId LIMIT 1")
+    suspend fun getMessageBySyncIdIncludingDeleted(syncId: String): MessageEntity?
+
+    @Query("UPDATE messages SET deletedAt = :deletedAt, updatedAt = :deletedAt, revision = revision + 1 WHERE syncId = :syncId")
+    suspend fun tombstoneMessage(syncId: String, deletedAt: Long)
 
     @Query(
         """
@@ -291,23 +314,23 @@ interface MessageDao {
     suspend fun updateMessage(message: MessageEntity)
 
     /** 获取指定聊天中最大的序号 */
-    @Query("SELECT MAX(orderIndex) FROM messages WHERE chatId = :chatId")
+    @Query("SELECT MAX(orderIndex) FROM messages WHERE chatId = :chatId AND deletedAt IS NULL")
     suspend fun getMaxOrderIndex(chatId: String): Int?
 
     /** 删除指定聊天的所有消息 */
-    @Query("DELETE FROM messages WHERE chatId = :chatId")
-    suspend fun deleteAllMessagesForChat(chatId: String)
+    @Query("UPDATE messages SET deletedAt = :deletedAt, updatedAt = :deletedAt, revision = revision + 1 WHERE chatId = :chatId AND deletedAt IS NULL")
+    suspend fun deleteAllMessagesForChat(chatId: String, deletedAt: Long = System.currentTimeMillis())
 
     /** 根据时间戳查找消息 */
-    @Query("SELECT * FROM messages WHERE chatId = :chatId AND timestamp = :timestamp LIMIT 1")
+    @Query("SELECT * FROM messages WHERE chatId = :chatId AND timestamp = :timestamp AND deletedAt IS NULL LIMIT 1")
     suspend fun getMessageByTimestamp(chatId: String, timestamp: Long): MessageEntity?
 
     /** 删除指定聊天中从某个时间戳开始的所有消息 */
-    @Query("DELETE FROM messages WHERE chatId = :chatId AND timestamp >= :timestamp")
-    suspend fun deleteMessagesFrom(chatId: String, timestamp: Long)
+    @Query("UPDATE messages SET deletedAt = :deletedAt, updatedAt = :deletedAt, revision = revision + 1 WHERE chatId = :chatId AND timestamp >= :timestamp AND deletedAt IS NULL")
+    suspend fun deleteMessagesFrom(chatId: String, timestamp: Long, deletedAt: Long = System.currentTimeMillis())
 
-    @Query("DELETE FROM messages WHERE chatId = :chatId AND timestamp = :timestamp")
-    suspend fun deleteMessageByTimestamp(chatId: String, timestamp: Long)
+    @Query("UPDATE messages SET deletedAt = :deletedAt, updatedAt = :deletedAt, revision = revision + 1 WHERE chatId = :chatId AND timestamp = :timestamp AND deletedAt IS NULL")
+    suspend fun deleteMessageByTimestamp(chatId: String, timestamp: Long, deletedAt: Long = System.currentTimeMillis())
 
     @Query(
         "UPDATE messages SET selectedVariantIndex = :selectedVariantIndex, revision = revision + 1, updatedAt = :updatedAt WHERE chatId = :chatId AND timestamp = :timestamp"
@@ -330,7 +353,7 @@ interface MessageDao {
     )
 
     /** 查找包含特定关键词的聊天ID列表（不重复） */
-    @Query("SELECT DISTINCT chatId FROM messages WHERE content LIKE '%' || :query || '%' ESCAPE '\\' COLLATE NOCASE")
+    @Query("SELECT DISTINCT chatId FROM messages WHERE deletedAt IS NULL AND content LIKE '%' || :query || '%' ESCAPE '\\' COLLATE NOCASE")
     suspend fun searchChatIdsByContent(query: String): List<String>
 
     /** 批量重命名消息中的角色名 */

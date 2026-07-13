@@ -336,6 +336,15 @@ class ChatHistoryDelegate(
     suspend fun getChatHistory(chatId: String): List<ChatMessage> =
         chatHistoryManager.loadChatMessages(chatId)
 
+    suspend fun loadReadableAiMessageContents(
+        chatId: String,
+        offset: Int,
+        limit: Int,
+    ): List<String> = chatHistoryManager.loadReadableAiMessageContents(chatId, offset, limit)
+
+    suspend fun hasReadableAiMessage(chatId: String): Boolean =
+        chatHistoryManager.hasReadableAiMessage(chatId)
+
     suspend fun getRuntimeChatHistory(chatId: String): List<ChatMessage> =
         chatHistoryManager.loadRuntimeChatMessages(chatId)
 

@@ -10,14 +10,71 @@ import com.cynosure.operit.data.model.ParameterValue
 import com.cynosure.operit.data.model.TriggerNode
 import com.cynosure.operit.data.model.Workflow
 import com.cynosure.operit.data.model.WorkflowNodeConnection
+import com.cynosure.operit.data.model.GlobalRefNode
+import com.cynosure.operit.data.model.WorkflowGlobalNode
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class WorkflowExecutorAndroidTest {
+
+    @Test
+    fun repeatedGlobalReferencesKeepInstanceIdentity() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val manager = WorkflowGlobalNodeManager.getInstance(context)
+        val template = WorkflowGlobalNode(
+            id = "global-condition",
+            name = "Template",
+            nodeData = ConditionNode(
+                id = "template-id",
+                name = "Template condition",
+                left = ParameterValue.StaticValue("1"),
+                operator = ConditionOperator.EQ,
+                right = ParameterValue.StaticValue("1")
+            )
+        )
+        manager.saveGlobalNode(template).getOrThrow()
+        val workflow = Workflow(
+            id = "global-workflow",
+            nodes = listOf(
+                GlobalRefNode(id = "first", name = "First", globalNodeId = template.id),
+                GlobalRefNode(id = "second", name = "Second", globalNodeId = template.id)
+            )
+        )
+
+        val resolved = WorkflowExecutor(context).resolveGlobalNodes(workflow)
+
+        assertEquals(listOf("first", "second"), resolved.map { it.id })
+        assertEquals(listOf("First", "Second"), resolved.map { it.name })
+    }
+
+    @Test(expected = IllegalStateException::class)
+    fun missingGlobalReferenceFailsExplicitly() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        WorkflowExecutor(context).resolveGlobalNodes(
+            Workflow(id = "missing", nodes = listOf(GlobalRefNode(globalNodeId = "missing-template")))
+        )
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun emptyGlobalReferenceFailsExplicitly() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        WorkflowExecutor(context).resolveGlobalNodes(
+            Workflow(id = "empty", nodes = listOf(GlobalRefNode(globalNodeId = "")))
+        )
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun globalTemplateRejectsTriggerNode() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        WorkflowGlobalNodeManager.getInstance(context).saveGlobalNode(
+            WorkflowGlobalNode(id = "invalid-trigger", nodeData = TriggerNode())
+        ).getOrThrow()
+    }
 
     @Test
     fun nodeFailureShouldNotStopWorkflowExecution() {

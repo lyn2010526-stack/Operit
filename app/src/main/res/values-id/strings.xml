@@ -3818,6 +3818,9 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="character_card_tool_access_denied_runtime">Kartu karakter ini tidak mengizinkan penggunaan alat/sumber ini</string>
     <string name="character_card_custom_prompt">Prompt kustom</string>
     <string name="character_card_custom_prompt_placeholder">Prompt kustom lanjutan...</string>
+    <string name="character_card_add_prompt_files">Add prompt files</string>
+    <string name="character_card_remove_prompt_file">Remove prompt file</string>
+    <string name="character_card_prompt_file_copy_failed">Unable to save prompt file</string>
     <string name="character_card_marks">Catatan</string>
     <string name="character_card_marks_placeholder">Catatan pribadi, tidak memengaruhi AI...</string>
     <string name="character_card_edit_name">Edit nama</string>
@@ -6950,6 +6953,8 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="show_message_timestamp_description">Tampilkan waktu pesan di bagian bawah pesan AI</string>
     <string name="chat_message_timestamp_compact">waktu: %1$s</string>
     <string name="memory_auto_save_settings_title">Simpan Memori Otomatis</string>
+    <string name="memory_save_prompt_title">Memory save prompt</string>
+    <string name="memory_save_prompt_description">Appended to the system prompt for manual and automatic memory saves. Leave empty to append nothing.</string>
     <string name="memory_auto_save_interval_minutes">Interval Simpan Otomatis (menit)</string>
     <string name="character_card_memory_switch_confirm_title">Ubah Ikatan Memori Kartu Karakter</string>
     <string name="character_card_memory_switch_confirm_message">Kartu karakter saat ini sudah terikat dengan konfigurasi memori. Melanjutkan akan mengubah ikatan konfigurasi memori kartu karakter ini, tanpa mengubah konfigurasi memori global.</string>
@@ -7216,4 +7221,9 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="ai_message_use_package_failed">Panggilan use_package gagal: %1$s</string>
     <string name="ai_message_use_package_empty">use_package mengembalikan kosong.</string>
     <string name="ai_message_package_warmup_item">%1$d. Paket %2$s (terkena %3$d kali)</string>
+    <string name="play_all_conversation">Putar semua pesan AI</string>
+    <string name="stop_play_all">Hentikan semua pemutaran</string>
+    <string name="toolbox_sort_default">Urutan bawaan</string>
+    <string name="toolbox_sort_name_asc">Nama A-Z</string>
+    <string name="toolbox_sort_name_desc">Nama Z-A</string>
 </resources>

@@ -9,8 +9,12 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Sort
+import androidx.compose.material.icons.outlined.SortByAlpha
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.cynosure.operit.ui.components.CustomScaffold
@@ -40,6 +44,8 @@ import com.cynosure.operit.terminal.rememberTerminalEnv
 import com.cynosure.operit.ui.main.LocalAppNavigationModel
 import com.cynosure.operit.ui.main.navigation.NavigationEntrySpec
 import com.cynosure.operit.ui.main.navigation.NavigationSurface
+import java.text.Collator
+import java.util.Locale
 
 data class Tool(
         val id: String,
@@ -48,6 +54,12 @@ data class Tool(
         val description: String? = null,
         val onClick: () -> Unit
 )
+
+enum class ToolboxSortOption {
+    DEFAULT,
+    NAME_ASC,
+    NAME_DESC
+}
 
 /** 工具箱屏幕，展示可用的各种工具 */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -67,9 +79,13 @@ fun ToolboxScreen(
                                         entry.surface == NavigationSurface.TOOLBOX
                                 }
                 }
-        val tools =
-                remember(toolboxEntries) {
-                        toolboxEntries.map { entry ->
+        var showSortMenu by remember { mutableStateOf(false) }
+        var sortOption by rememberSaveable { mutableStateOf(ToolboxSortOption.DEFAULT) }
+        val collator = remember { Collator.getInstance(Locale.getDefault()) }
+
+        val sortedTools =
+                remember(toolboxEntries, sortOption) {
+                        val mapped = toolboxEntries.map { entry ->
                                 Tool(
                                         id = entry.entryId,
                                         name = entry.title,
@@ -80,21 +96,93 @@ fun ToolboxScreen(
                                         }
                                 )
                         }
+                        when (sortOption) {
+                                ToolboxSortOption.DEFAULT -> mapped
+                                ToolboxSortOption.NAME_ASC -> mapped.sortedWith { left, right -> collator.compare(left.name, right.name) }
+                                ToolboxSortOption.NAME_DESC -> mapped.sortedWith { left, right -> collator.compare(right.name, left.name) }
+                        }
                 }
 
         Box(modifier = Modifier.fillMaxSize()) {
                 LazyVerticalGrid(
                         columns = GridCells.Adaptive(minSize = 156.dp),
-                        contentPadding = PaddingValues(12.dp),
+                        contentPadding = PaddingValues(
+                            start = 12.dp,
+                            end = 12.dp,
+                            top = 56.dp,
+                            bottom = 12.dp
+                        ),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxSize()
                 ) {
                         items(
-                                items = tools,
+                                items = sortedTools,
                                 key = { tool -> tool.id }
                         ) { tool ->
                                 ToolCard(tool = tool)
+                        }
+                }
+
+                // 排序按钮（右上角）
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 8.dp, end = 8.dp)
+                ) {
+                        IconButton(onClick = { showSortMenu = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.Sort,
+                                    contentDescription = stringResource(R.string.file_manager_sort),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                        }
+                        DropdownMenu(
+                            expanded = showSortMenu,
+                            onDismissRequest = { showSortMenu = false }
+                        ) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.toolbox_sort_default)) },
+                                    onClick = {
+                                        sortOption = ToolboxSortOption.DEFAULT
+                                        showSortMenu = false
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Sort,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.toolbox_sort_name_asc)) },
+                                    onClick = {
+                                        sortOption = ToolboxSortOption.NAME_ASC
+                                        showSortMenu = false
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Outlined.SortByAlpha,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.toolbox_sort_name_desc)) },
+                                    onClick = {
+                                        sortOption = ToolboxSortOption.NAME_DESC
+                                        showSortMenu = false
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Outlined.SortByAlpha,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                )
                         }
                 }
         }

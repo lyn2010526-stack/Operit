@@ -10,12 +10,12 @@ import com.cynosure.operit.data.model.MessageVariantEntity
 @Dao
 interface MessageVariantDao {
     @Query(
-        "SELECT * FROM message_variants WHERE chatId = :chatId ORDER BY messageTimestamp ASC, variantIndex ASC"
+        "SELECT * FROM message_variants WHERE chatId = :chatId AND deletedAt IS NULL ORDER BY messageTimestamp ASC, variantIndex ASC"
     )
     suspend fun getVariantsForChat(chatId: String): List<MessageVariantEntity>
 
     @Query(
-        "SELECT * FROM message_variants WHERE chatId = :chatId AND messageTimestamp IN (:messageTimestamps) ORDER BY messageTimestamp ASC, variantIndex ASC"
+        "SELECT * FROM message_variants WHERE chatId = :chatId AND messageTimestamp IN (:messageTimestamps) AND deletedAt IS NULL ORDER BY messageTimestamp ASC, variantIndex ASC"
     )
     suspend fun getVariantsForMessages(
         chatId: String,
@@ -23,7 +23,7 @@ interface MessageVariantDao {
     ): List<MessageVariantEntity>
 
     @Query(
-        "SELECT * FROM message_variants WHERE chatId = :chatId AND messageTimestamp = :messageTimestamp ORDER BY variantIndex ASC"
+        "SELECT * FROM message_variants WHERE chatId = :chatId AND messageTimestamp = :messageTimestamp AND deletedAt IS NULL ORDER BY variantIndex ASC"
     )
     suspend fun getVariantsForMessage(
         chatId: String,
@@ -31,7 +31,7 @@ interface MessageVariantDao {
     ): List<MessageVariantEntity>
 
     @Query(
-        "SELECT * FROM message_variants WHERE chatId = :chatId AND messageTimestamp = :messageTimestamp AND variantIndex = :variantIndex LIMIT 1"
+        "SELECT * FROM message_variants WHERE chatId = :chatId AND messageTimestamp = :messageTimestamp AND variantIndex = :variantIndex AND deletedAt IS NULL LIMIT 1"
     )
     suspend fun getVariantForMessage(
         chatId: String,
@@ -45,9 +45,19 @@ interface MessageVariantDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertVariants(variants: List<MessageVariantEntity>)
 
+    @Query("SELECT * FROM message_variants")
+    suspend fun getAllVariantsIncludingDeleted(): List<MessageVariantEntity>
+
+    @Query("SELECT * FROM message_variants WHERE syncId = :syncId LIMIT 1")
+    suspend fun getVariantBySyncIdIncludingDeleted(syncId: String): MessageVariantEntity?
+
+    @Query("UPDATE message_variants SET deletedAt = :deletedAt, updatedAt = :deletedAt, revision = revision + 1 WHERE syncId = :syncId")
+    suspend fun tombstoneVariant(syncId: String, deletedAt: Long)
+
     @Query(
         """
         INSERT INTO message_variants (
+            syncId,
             chatId,
             messageTimestamp,
             variantIndex,
@@ -61,9 +71,13 @@ interface MessageVariantDao {
             sentAt,
             outputDurationMs,
             waitDurationMs,
-            completedAt
+            completedAt,
+            revision,
+            updatedAt,
+            deletedAt
         )
         SELECT
+            lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-' || lower(hex(randomblob(2))) || '-' || lower(hex(randomblob(2))) || '-' || lower(hex(randomblob(6))),
             :targetChatId,
             messageTimestamp,
             variantIndex,
@@ -77,7 +91,10 @@ interface MessageVariantDao {
             sentAt,
             outputDurationMs,
             waitDurationMs,
-            completedAt
+            completedAt,
+            1,
+            CAST(strftime('%s','now') AS INTEGER) * 1000,
+            NULL
         FROM message_variants
         WHERE chatId = :sourceChatId
             AND (:upToTimestampInclusive IS NULL OR messageTimestamp <= :upToTimestampInclusive)
@@ -93,20 +110,21 @@ interface MessageVariantDao {
     suspend fun updateVariant(variant: MessageVariantEntity)
 
     @Query(
-        "DELETE FROM message_variants WHERE chatId = :chatId AND messageTimestamp = :messageTimestamp AND variantIndex = :variantIndex"
+        "UPDATE message_variants SET variantIndex = -variantId, deletedAt = :deletedAt, updatedAt = :deletedAt, revision = revision + 1 WHERE chatId = :chatId AND messageTimestamp = :messageTimestamp AND variantIndex = :variantIndex AND deletedAt IS NULL"
     )
     suspend fun deleteVariant(
         chatId: String,
         messageTimestamp: Long,
         variantIndex: Int,
+        deletedAt: Long = System.currentTimeMillis(),
     )
 
-    @Query("DELETE FROM message_variants WHERE chatId = :chatId AND messageTimestamp = :messageTimestamp")
-    suspend fun deleteVariantsForMessage(chatId: String, messageTimestamp: Long)
+    @Query("UPDATE message_variants SET deletedAt = :deletedAt, updatedAt = :deletedAt, revision = revision + 1 WHERE chatId = :chatId AND messageTimestamp = :messageTimestamp AND deletedAt IS NULL")
+    suspend fun deleteVariantsForMessage(chatId: String, messageTimestamp: Long, deletedAt: Long = System.currentTimeMillis())
 
-    @Query("DELETE FROM message_variants WHERE chatId = :chatId AND messageTimestamp >= :messageTimestamp")
-    suspend fun deleteVariantsFrom(chatId: String, messageTimestamp: Long)
+    @Query("UPDATE message_variants SET deletedAt = :deletedAt, updatedAt = :deletedAt, revision = revision + 1 WHERE chatId = :chatId AND messageTimestamp >= :messageTimestamp AND deletedAt IS NULL")
+    suspend fun deleteVariantsFrom(chatId: String, messageTimestamp: Long, deletedAt: Long = System.currentTimeMillis())
 
-    @Query("DELETE FROM message_variants WHERE chatId = :chatId")
-    suspend fun deleteAllVariantsForChat(chatId: String)
+    @Query("UPDATE message_variants SET deletedAt = :deletedAt, updatedAt = :deletedAt, revision = revision + 1 WHERE chatId = :chatId AND deletedAt IS NULL")
+    suspend fun deleteAllVariantsForChat(chatId: String, deletedAt: Long = System.currentTimeMillis())
 }

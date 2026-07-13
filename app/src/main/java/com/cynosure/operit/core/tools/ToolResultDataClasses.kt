@@ -1927,6 +1927,13 @@ data class WorkflowDetailResultData(
                         sb.appendLine("    Description: ${node.description}")
                     }
                 }
+                is com.cynosure.operit.data.model.GlobalRefNode -> {
+                    sb.appendLine("  - [Global Reference] ${node.name} (${node.id})")
+                    sb.appendLine("    Global Node ID: ${node.globalNodeId}")
+                    if (node.description.isNotBlank()) {
+                        sb.appendLine("    Description: ${node.description}")
+                    }
+                }
             }
         }
         sb.appendLine()

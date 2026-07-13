@@ -49,6 +49,7 @@ import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.util.*
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -842,12 +843,17 @@ suspend fun exportAndroidApp(
 
                 onProgress(1.0f, context.getString(R.string.export_completed))
                 onComplete(true, signedApk.absolutePath, null)
+            } catch (e: CancellationException) {
+                apkEditor.cleanup()
+                throw e
             } catch (e: Exception) {
                 AppLogger.e("ExportDialogs", "签名APK失败", e)
                 onComplete(false, null, context.getString(R.string.export_sign_apk_failed, e.message ?: ""))
                 apkEditor.cleanup() // 确保失败时也清理资源
             }
         }
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: Exception) {
         AppLogger.e("ExportDialogs", "导出失败", e)
         onComplete(false, null, context.getString(R.string.export_failed_with_reason, e.message ?: ""))
@@ -928,6 +934,8 @@ suspend fun exportWindowsApp(
                                 exeEditor.changeIcon(input).setOutput(mainExe).process()
                             }
                             AppLogger.d("ExportDialogs", "已更换Windows应用图标")
+                        } catch (e: CancellationException) {
+                            throw e
                         } catch (e: Exception) {
                             AppLogger.e("ExportDialogs", "更换Windows应用图标失败", e)
                             // 继续执行，不因图标失败而中断整个导出流程
@@ -974,19 +982,22 @@ suspend fun exportWindowsApp(
 
                 onProgress(1.0f, context.getString(R.string.export_completed))
                 onComplete(true, outputZip.absolutePath, null)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 AppLogger.e("ExportDialogs", "Windows应用导出过程失败", e)
                 onComplete(false, null, context.getString(R.string.export_process_failed, e.message ?: ""))
             } finally {
                 // 7. 清理临时文件
                 try {
-                    onProgress(0.9f, context.getString(R.string.export_cleanup_temp_files))
                     tempDir.deleteRecursively()
                 } catch (e: Exception) {
                     AppLogger.e("ExportDialogs", "清理临时文件失败", e)
                 }
             }
         }
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: Exception) {
         AppLogger.e("ExportDialogs", "Windows应用导出失败", e)
         onComplete(false, null, context.getString(R.string.export_failed_with_reason, e.message ?: ""))

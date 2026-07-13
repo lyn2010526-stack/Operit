@@ -5,9 +5,11 @@ import androidx.room.PrimaryKey
 import java.time.Instant
 import java.time.ZoneId
 import java.util.UUID
+import kotlinx.serialization.Serializable
 
 /** 聊天实体类，用于Room数据库存储聊天元数据 */
 @Entity(tableName = "chats")
+@Serializable
 data class ChatEntity(
         @PrimaryKey val id: String = UUID.randomUUID().toString(),
         val title: String,
@@ -24,7 +26,9 @@ data class ChatEntity(
         val characterCardName: String? = null,
         val characterGroupId: String? = null,
         val locked: Boolean = false,
-        val pinned: Boolean = false
+        val pinned: Boolean = false,
+        val revision: Long = 1L,
+        val deletedAt: Long? = null,
 ) {
     /** 转换为ChatHistory对象（供UI层使用） */
     fun toChatHistory(messages: List<ChatMessage>): ChatHistory {

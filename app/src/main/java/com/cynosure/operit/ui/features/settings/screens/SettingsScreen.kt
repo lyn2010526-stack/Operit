@@ -67,7 +67,8 @@ fun SettingsScreen(
         navigateToTokenUsageStatistics: () -> Unit,
         navigateToDiagnostics: () -> Unit,
         navigateToContextSummarySettings: () -> Unit,
-        navigateToLayoutAdjustmentSettings: () -> Unit
+        navigateToLayoutAdjustmentSettings: () -> Unit,
+        navigateToLanSyncSettings: () -> Unit,
 ) {
         val context = LocalContext.current
         val userPreferences = remember { UserPreferencesManager.getInstance(context) }
@@ -126,14 +127,16 @@ fun SettingsScreen(
                                         icon = Icons.Default.Logout,
                                         onClick = {
                                                 scope.launch { githubAuth.logout() }
-                                        }
+                                        },
+                                        showDivider = false
                                 )
                         } else {
                                 CompactSettingsItem(
                                         title = stringResource(R.string.login_github),
                                         subtitle = stringResource(R.string.github_account_login_desc),
                                         icon = Icons.Default.Login,
-                                        onClick = { showGitHubLogin = true }
+                                        onClick = { showGitHubLogin = true },
+                                        showDivider = false
                                 )
                         }
                 }
@@ -182,7 +185,8 @@ fun SettingsScreen(
                                 title = stringResource(R.string.layout_adjustment),
                                 subtitle = stringResource(R.string.layout_adjustment_subtitle),
                                 icon = Icons.Default.AspectRatio,
-                                onClick = navigateToLayoutAdjustmentSettings
+                                onClick = navigateToLayoutAdjustmentSettings,
+                                showDivider = false
                         )
                 }
 
@@ -210,7 +214,8 @@ fun SettingsScreen(
                                 title = stringResource(id = R.string.settings_speech_services),
                                 subtitle = stringResource(id = R.string.settings_speech_services_subtitle),
                                 icon = Icons.Default.RecordVoiceOver,
-                                onClick = navigateToSpeechServicesSettings
+                                onClick = navigateToSpeechServicesSettings,
+                                showDivider = false
                         )
                         
                 }
@@ -241,7 +246,8 @@ fun SettingsScreen(
                                 title = stringResource(R.string.waifu_mode_settings),
                                 subtitle = stringResource(R.string.waifu_mode_settings_desc),
                                 icon = Icons.Default.EmojiEmotions,
-                                onClick = navigateToWaifuModeSettings
+                                onClick = navigateToWaifuModeSettings,
+                                showDivider = false
                         )
                 }
 
@@ -255,7 +261,8 @@ fun SettingsScreen(
                                 title = stringResource(id = R.string.settings_section_context_summary),
                                 subtitle = stringResource(id = R.string.settings_context_summary_subtitle),
                                 icon = Icons.Default.Tune,
-                                onClick = navigateToContextSummarySettings
+                                onClick = navigateToContextSummarySettings,
+                                showDivider = false
                         )
                 }
 
@@ -277,6 +284,13 @@ fun SettingsScreen(
                                 subtitle = stringResource(id = R.string.settings_data_backup_desc),
                                 icon = Icons.Default.CloudUpload,
                                 onClick = navigateToChatBackupSettings
+                        )
+
+                        CompactSettingsItem(
+                                title = "局域网同步",
+                                subtitle = "在可信设备间增量同步记忆、Skill、角色和聊天",
+                                icon = Icons.Default.Sync,
+                                onClick = navigateToLanSyncSettings
                         )
                         
                         CompactSettingsItem(
@@ -324,7 +338,8 @@ fun SettingsScreen(
                                 title = stringResource(id = R.string.settings_clear_cookies),
                                 subtitle = stringResource(id = R.string.settings_clear_cookies_subtitle),
                                 icon = Icons.Default.DeleteSweep,
-                                onClick = { showClearCookieConfirm = true }
+                                onClick = { showClearCookieConfirm = true },
+                                showDivider = false
                         )
                 }
 
@@ -338,7 +353,8 @@ fun SettingsScreen(
                                 title = stringResource(id = R.string.settings_external_http_chat),
                                 subtitle = stringResource(id = R.string.settings_external_http_chat_subtitle),
                                 icon = Icons.Default.SettingsEthernet,
-                                onClick = navigateToExternalHttpChatSettings
+                                onClick = navigateToExternalHttpChatSettings,
+                                showDivider = false
                         )
                 }
 
@@ -414,15 +430,17 @@ private fun SettingsSection(
                         )
                 }
                 
-                // 内容区域
+                // 内容区域 - 使用iOS风格卡片
                 Card(
                         modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(13.dp),
                         colors = CardDefaults.cardColors(
                                 containerColor = containerColor
-                        )
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                         Column(
-                                modifier = Modifier.padding(12.dp),
+                                modifier = Modifier.padding(vertical = 2.dp),
                                 content = content
                         )
                 }
@@ -434,48 +452,55 @@ private fun CompactSettingsItem(
         title: String,
         subtitle: String,
         icon: ImageVector,
-        onClick: () -> Unit
+        onClick: () -> Unit,
+        showDivider: Boolean = true
 ) {
-        Row(
-                modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(6.dp))
-                        .clickable { onClick() }
-                        .padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-        ) {
-                Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                )
-                
-                Spacer(modifier = Modifier.width(12.dp))
-                
-                Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                                text = title,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Medium,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+        Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                        modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(13.dp))
+                                .clickable { onClick() }
+                                .padding(horizontal = 14.dp, vertical = 11.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                ) {
+                        Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(22.dp)
                         )
-                        Text(
-                                text = subtitle,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                        text = title,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.Normal,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                        text = subtitle,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                )
+                        }
+                        Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp)
                         )
                 }
-                
-                Icon(
-                        imageVector = Icons.Default.ChevronRight,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp)
-                )
+                if (showDivider) {
+                        HorizontalDivider(
+                                modifier = Modifier.padding(start = 48.dp),
+                                thickness = 0.5.dp,
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
+                        )
+                }
         }
 }
 

@@ -675,6 +675,20 @@ class StandardWorkflowTools(private val context: Context) {
                             fixedValue = fixedValue
                         )
                     }
+                    is GlobalRefNode -> {
+                        val globalNodeId =
+                            if (patchObj.has("globalNodeId")) {
+                                patchObj.optString("globalNodeId", existingNode.globalNodeId)
+                            } else {
+                                existingNode.globalNodeId
+                            }
+                        existingNode.copy(
+                            name = name,
+                            description = description,
+                            position = position,
+                            globalNodeId = globalNodeId
+                        )
+                    }
                 }
             }
 
@@ -944,7 +958,7 @@ class StandardWorkflowTools(private val context: Context) {
             }
 
             if (jsonArray.length() > 0 && nodes.isEmpty()) {
-                throw IllegalArgumentException("Failed to parse nodes: Please provide type=trigger/execute/condition/logic/extract for each node (or provide __type=...TriggerNode/...ExecuteNode for inference)")
+                throw IllegalArgumentException("Failed to parse nodes: Please provide type=trigger/execute/condition/logic/extract/global_ref or a matching __type discriminator")
             }
 
             nodes
@@ -1101,6 +1115,13 @@ class StandardWorkflowTools(private val context: Context) {
                         fixedValue = fixedValue
                     )
                 }
+                "global_ref" -> GlobalRefNode(
+                    id = id,
+                    name = name.ifBlank { "Global reference" },
+                    description = description,
+                    position = position,
+                    globalNodeId = nodeObj.optString("globalNodeId", nodeObj.optString("global_node_id", "")).trim()
+                )
                 else -> {
                     AppLogger.w(TAG, "Unknown node type: $type")
                     null
@@ -1119,6 +1140,7 @@ class StandardWorkflowTools(private val context: Context) {
             when {
                 simple.endsWith("triggernode") -> return "trigger"
                 simple.endsWith("executenode") -> return "execute"
+                simple == "global_ref" || simple.endsWith("globalrefnode") -> return "global_ref"
                 simple.endsWith("conditionnode") -> return "condition"
                 simple.endsWith("logicnode") -> return "logic"
                 simple.endsWith("extractnode") -> return "extract"
@@ -1127,6 +1149,7 @@ class StandardWorkflowTools(private val context: Context) {
 
         if (nodeObj.has("triggerType") || nodeObj.has("triggerConfig")) return "trigger"
         if (nodeObj.has("actionType") || nodeObj.has("actionConfig") || nodeObj.has("jsCode")) return "execute"
+        if (nodeObj.has("globalNodeId") || nodeObj.has("global_node_id")) return "global_ref"
         if (nodeObj.has("left") || nodeObj.has("right")) return "condition"
         if (nodeObj.has("source") || nodeObj.has("mode") || nodeObj.has("expression") || nodeObj.has("pattern") || nodeObj.has("path")) return "extract"
         if (nodeObj.has("operator")) return "logic"

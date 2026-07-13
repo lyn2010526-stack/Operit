@@ -602,6 +602,7 @@ class MessageProcessingDelegate(
             suppressUserMessageInHistory: Boolean = false,
             isGroupOrchestrationTurn: Boolean = false,
             groupParticipantNamesText: String? = null,
+            groupSystemPrompt: String? = null,
             turnOptions: ChatTurnOptions = ChatTurnOptions()
     ) {
         val rawMessageText = messageTextOverride ?: _userMessage.value.text
@@ -957,6 +958,7 @@ class MessageProcessingDelegate(
                     splitHistoryByRole = true,
                     groupOrchestrationMode = isGroupOrchestrationTurn,
                     groupParticipantNamesText = groupParticipantNamesText,
+                    groupSystemPrompt = groupSystemPrompt,
                     proxySenderName = proxySenderNameOverride,
                     onToolInvocation = {
                         incrementCurrentTurnToolInvocationCount(chatId)

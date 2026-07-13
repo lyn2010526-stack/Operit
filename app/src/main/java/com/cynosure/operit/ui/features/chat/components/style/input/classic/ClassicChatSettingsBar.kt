@@ -705,8 +705,7 @@ fun ClassicChatSettingsBar(
                             )
                             SettingItem(
                                 title = stringResource(R.string.anti_hallucination_mode),
-                                icon = if (enableAntiHallucination)
-                                    Icons.Filled.Shield else Icons.Outlined.Shield,
+                                icon = Icons.Outlined.Security,
                                 iconTint = if (enableAntiHallucination)
                                     MaterialTheme.colorScheme.primary
                                 else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
@@ -714,8 +713,8 @@ fun ClassicChatSettingsBar(
                                 onToggle = onToggleAntiHallucination,
                                 onInfoClick = {
                                     infoPopupContent =
-                                        stringResource(R.string.anti_hallucination_mode) to
-                                            stringResource(R.string.anti_hallucination_mode_desc)
+                                        context.getString(R.string.anti_hallucination_mode) to
+                                            context.getString(R.string.anti_hallucination_mode_desc)
                                     showMenu = false
                                 }
                             )

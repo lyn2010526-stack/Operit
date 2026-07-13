@@ -14,26 +14,36 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface ChatDao {
     /** 获取所有聊天，按显示顺序排列 */
-    @Query("SELECT * FROM chats ORDER BY pinned DESC, displayOrder ASC")
+    @Query("SELECT * FROM chats WHERE deletedAt IS NULL ORDER BY pinned DESC, displayOrder ASC")
     fun getAllChats(): Flow<List<ChatEntity>>
 
     /** 获取聊天总数 */
-    @Query("SELECT COUNT(*) FROM chats")
+    @Query("SELECT COUNT(*) FROM chats WHERE deletedAt IS NULL")
     suspend fun getTotalChatCount(): Int
 
     /** 获取所有聊天（挂起函数版本） */
-    @Query("SELECT * FROM chats ORDER BY pinned DESC, displayOrder ASC")
+    @Query("SELECT * FROM chats WHERE deletedAt IS NULL ORDER BY pinned DESC, displayOrder ASC")
     suspend fun getAllChatsDirectly(): List<ChatEntity>
 
     /** 根据ID获取单个聊天 */
-    @Query("SELECT * FROM chats WHERE id = :chatId")
+    @Query("SELECT * FROM chats WHERE id = :chatId AND deletedAt IS NULL")
     suspend fun getChatById(chatId: String): ChatEntity?
 
     /** 插入或更新聊天 */
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertChat(chat: ChatEntity)
 
     /** 删除聊天 */
-    @Query("DELETE FROM chats WHERE id = :chatId") suspend fun deleteChat(chatId: String)
+    @Query("UPDATE chats SET deletedAt = :deletedAt, updatedAt = :deletedAt, revision = revision + 1 WHERE id = :chatId AND deletedAt IS NULL")
+    suspend fun deleteChat(chatId: String, deletedAt: Long = System.currentTimeMillis())
+
+    @Query("SELECT * FROM chats WHERE id = :chatId LIMIT 1")
+    suspend fun getChatByIdIncludingDeleted(chatId: String): ChatEntity?
+
+    @Query("SELECT * FROM chats")
+    suspend fun getAllChatsIncludingDeleted(): List<ChatEntity>
+
+    @Query("UPDATE chats SET deletedAt = :deletedAt, updatedAt = :deletedAt, revision = revision + 1 WHERE id = :chatId")
+    suspend fun tombstoneChat(chatId: String, deletedAt: Long)
 
     /** 更新聊天元数据 */
     @Query(
@@ -116,12 +126,12 @@ interface ChatDao {
     suspend fun updateGroupNameForCharacter(oldName: String, newName: String, characterCardName: String)
 
     /** 删除分组下的所有聊天 */
-    @Query("DELETE FROM chats WHERE `group` = :groupName AND locked = 0")
-    suspend fun deleteChatsInGroup(groupName: String)
+    @Query("UPDATE chats SET deletedAt = :deletedAt, updatedAt = :deletedAt, revision = revision + 1 WHERE `group` = :groupName AND locked = 0 AND deletedAt IS NULL")
+    suspend fun deleteChatsInGroup(groupName: String, deletedAt: Long = System.currentTimeMillis())
     
     /** 删除指定角色卡下分组的所有聊天 */
-    @Query("DELETE FROM chats WHERE `group` = :groupName AND characterCardName = :characterCardName AND locked = 0")
-    suspend fun deleteChatsInGroupForCharacter(groupName: String, characterCardName: String)
+    @Query("UPDATE chats SET deletedAt = :deletedAt, updatedAt = :deletedAt, revision = revision + 1 WHERE `group` = :groupName AND characterCardName = :characterCardName AND locked = 0 AND deletedAt IS NULL")
+    suspend fun deleteChatsInGroupForCharacter(groupName: String, characterCardName: String, deletedAt: Long = System.currentTimeMillis())
 
     /** 将分组下的所有聊天移动到"未分组" */
     @Query("UPDATE chats SET `group` = NULL, updatedAt = :timestamp WHERE `group` = :groupName")
@@ -140,31 +150,31 @@ interface ChatDao {
     suspend fun removeGroupFromLockedChatsForCharacter(groupName: String, characterCardName: String, timestamp: Long = System.currentTimeMillis())
 
     /** 根据parentChatId获取所有分支对话 */
-    @Query("SELECT * FROM chats WHERE parentChatId = :parentChatId ORDER BY pinned DESC, displayOrder ASC")
+    @Query("SELECT * FROM chats WHERE parentChatId = :parentChatId AND deletedAt IS NULL ORDER BY pinned DESC, displayOrder ASC")
     suspend fun getBranchesByParentId(parentChatId: String): List<ChatEntity>
 
     /** 根据parentChatId获取所有分支对话（Flow版本） */
-    @Query("SELECT * FROM chats WHERE parentChatId = :parentChatId ORDER BY pinned DESC, displayOrder ASC")
+    @Query("SELECT * FROM chats WHERE parentChatId = :parentChatId AND deletedAt IS NULL ORDER BY pinned DESC, displayOrder ASC")
     fun getBranchesByParentIdFlow(parentChatId: String): Flow<List<ChatEntity>>
 
     /** 获取所有没有父对话的对话（即主对话） */
-    @Query("SELECT * FROM chats WHERE parentChatId IS NULL ORDER BY pinned DESC, displayOrder ASC")
+    @Query("SELECT * FROM chats WHERE parentChatId IS NULL AND deletedAt IS NULL ORDER BY pinned DESC, displayOrder ASC")
     suspend fun getMainChats(): List<ChatEntity>
 
     /** 获取所有没有父对话的对话（Flow版本） */
-    @Query("SELECT * FROM chats WHERE parentChatId IS NULL ORDER BY pinned DESC, displayOrder ASC")
+    @Query("SELECT * FROM chats WHERE parentChatId IS NULL AND deletedAt IS NULL ORDER BY pinned DESC, displayOrder ASC")
     fun getMainChatsFlow(): Flow<List<ChatEntity>>
 
     /** 根据角色卡名称过滤聊天（非默认角色卡：只显示该角色卡名称的对话） */
-    @Query("SELECT * FROM chats WHERE characterCardName = :characterCardName AND characterGroupId IS NULL ORDER BY pinned DESC, displayOrder ASC")
+    @Query("SELECT * FROM chats WHERE characterCardName = :characterCardName AND characterGroupId IS NULL AND deletedAt IS NULL ORDER BY pinned DESC, displayOrder ASC")
     fun getChatsByCharacterCard(characterCardName: String): Flow<List<ChatEntity>>
 
     /** 根据群组ID过滤聊天 */
-    @Query("SELECT * FROM chats WHERE characterGroupId = :characterGroupId ORDER BY pinned DESC, displayOrder ASC")
+    @Query("SELECT * FROM chats WHERE characterGroupId = :characterGroupId AND deletedAt IS NULL ORDER BY pinned DESC, displayOrder ASC")
     fun getChatsByCharacterGroupId(characterGroupId: String): Flow<List<ChatEntity>>
 
     /** 根据角色卡名称过滤聊天（默认角色卡：显示该角色卡名称的对话 + 所有characterCardName为null的对话） */
-    @Query("SELECT * FROM chats WHERE characterCardName = :characterCardName OR (characterCardName IS NULL AND characterGroupId IS NULL) ORDER BY pinned DESC, displayOrder ASC")
+    @Query("SELECT * FROM chats WHERE deletedAt IS NULL AND (characterCardName = :characterCardName OR (characterCardName IS NULL AND characterGroupId IS NULL)) ORDER BY pinned DESC, displayOrder ASC")
     fun getChatsByCharacterCardOrNull(characterCardName: String): Flow<List<ChatEntity>>
 
     /** 批量清理绑定特定角色卡名称的对话（将characterCardName设为null） */
@@ -172,12 +182,12 @@ interface ChatDao {
     suspend fun clearCharacterCardBinding(characterCardName: String, timestamp: Long = System.currentTimeMillis())
 
     /** 批量删除绑定特定角色卡名称的未锁定对话 */
-    @Query("DELETE FROM chats WHERE characterCardName = :characterCardName AND locked = 0")
-    suspend fun deleteUnlockedChatsByCharacterCardName(characterCardName: String): Int
+    @Query("UPDATE chats SET deletedAt = :deletedAt, updatedAt = :deletedAt, revision = revision + 1 WHERE characterCardName = :characterCardName AND locked = 0 AND deletedAt IS NULL")
+    suspend fun deleteUnlockedChatsByCharacterCardName(characterCardName: String, deletedAt: Long = System.currentTimeMillis()): Int
 
     /** 批量删除未绑定角色卡的未锁定对话 */
-    @Query("DELETE FROM chats WHERE characterCardName IS NULL AND characterGroupId IS NULL AND locked = 0")
-    suspend fun deleteUnlockedUnboundChats(): Int
+    @Query("UPDATE chats SET deletedAt = :deletedAt, updatedAt = :deletedAt, revision = revision + 1 WHERE characterCardName IS NULL AND characterGroupId IS NULL AND locked = 0 AND deletedAt IS NULL")
+    suspend fun deleteUnlockedUnboundChats(deletedAt: Long = System.currentTimeMillis()): Int
 
     /** 批量重命名角色卡绑定 */
     @Query("UPDATE chats SET characterCardName = :newName, updatedAt = :timestamp WHERE characterCardName = :oldName")
@@ -258,9 +268,10 @@ interface ChatDao {
         LEFT JOIN (
             SELECT chatId, COUNT(*) AS messageCount
             FROM messages
+            WHERE deletedAt IS NULL
             GROUP BY chatId
         ) mc ON c.id = mc.chatId
-        WHERE c.characterGroupId IS NULL
+        WHERE c.characterGroupId IS NULL AND c.deletedAt IS NULL
         GROUP BY c.characterCardName
         """
     )
@@ -277,9 +288,10 @@ interface ChatDao {
         LEFT JOIN (
             SELECT chatId, COUNT(*) AS messageCount
             FROM messages
+            WHERE deletedAt IS NULL
             GROUP BY chatId
         ) mc ON c.id = mc.chatId
-        WHERE c.characterCardName IS NULL
+        WHERE c.characterCardName IS NULL AND c.deletedAt IS NULL
         GROUP BY c.characterGroupId
         """
     )

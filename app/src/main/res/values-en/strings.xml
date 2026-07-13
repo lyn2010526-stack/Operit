@@ -4246,6 +4246,9 @@
     <string name="character_card_tool_access_denied_runtime">This role card is not allowed to use this tool/source</string>
     <string name="character_card_custom_prompt">Custom Prompt</string>
     <string name="character_card_custom_prompt_placeholder">Advanced custom prompt...</string>
+    <string name="character_card_add_prompt_files">Add prompt files</string>
+    <string name="character_card_remove_prompt_file">Remove prompt file</string>
+    <string name="character_card_prompt_file_copy_failed">Unable to save prompt file</string>
     <string name="character_card_marks">Notes</string>
     <string name="character_card_marks_placeholder">Private notes, won\'t affect AI...</string>
     <string name="character_card_edit_name">Edit Name</string>
@@ -5723,6 +5726,8 @@
     <string name="memory_search_calc_mode">Scoring Mode</string>
     <string name="memory_search_weight_section">Weights</string>
     <string name="memory_auto_save_settings_title">Auto Save Memory</string>
+    <string name="memory_save_prompt_title">Memory save prompt</string>
+    <string name="memory_save_prompt_description">Appended to the system prompt for manual and automatic memory saves. Leave empty to append nothing.</string>
     <string name="memory_auto_save_interval_minutes">Autosave interval (minutes)</string>
     <string name="memory_auto_save_interval_value">%1$d min · range %2$d-%3$d</string>
     <string name="memory_auto_save_interval_hint">Adjustable range %1$d-%2$d minutes, default %3$d minutes</string>
@@ -7950,4 +7955,26 @@
     <string name="ai_message_use_package_failed">use_package call failed: %1$s</string>
     <string name="ai_message_use_package_empty">use_package returned empty.</string>
     <string name="ai_message_package_warmup_item">%1$d. Package %2$s (hit %3$d times)</string>
+    <!-- Global Node -->
+    <string name="workflow_node_type_global_ref">Global node reference</string>
+    <string name="workflow_global_node_ref_id_label">Global node ID</string>
+    <string name="workflow_global_node_not_found">Global node not found: %1$s</string>
+    <string name="workflow_node_label_global_ref">Global Ref</string>
+    <string name="workflow_global_node_missing">Referenced template is missing</string>
+    <string name="workflow_global_node_manage">Manage global nodes</string>
+    <string name="workflow_global_node_create">Create global template</string>
+    <string name="workflow_global_node_select">Select global template</string>
+    <string name="workflow_global_node_empty">No global templates</string>
+    <string name="workflow_global_node_add_reference">Add global reference</string>
+    <string name="workflow_global_node_edit_template">Edit global template</string>
+    <string name="workflow_global_node_unlink">Unlink as regular node</string>
+    <string name="workflow_global_node_load_failed">Failed to load global nodes</string>
+    <string name="workflow_global_node_save_failed">Failed to save global node</string>
+    <string name="workflow_global_node_delete_failed">Failed to delete global node</string>
+    <string name="workflow_global_node_unlink_failed">Failed to unlink global node</string>
+    <string name="play_all_conversation">Play all AI messages</string>
+    <string name="stop_play_all">Stop playing all</string>
+    <string name="toolbox_sort_default">Default order</string>
+    <string name="toolbox_sort_name_asc">Name A-Z</string>
+    <string name="toolbox_sort_name_desc">Name Z-A</string>
 </resources>

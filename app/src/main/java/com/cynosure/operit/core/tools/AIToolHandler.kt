@@ -50,17 +50,22 @@ class AIToolHandler private constructor(private val context: Context) {
         }
     }
 
-    private val toolErrorTimestamps = ConcurrentHashMap<String, Long>()
+    private val toolErrorDeduplicator = ToolErrorDeduplicator(TOOL_ERROR_COOLDOWN_MS)
 
-    private fun throttleToolError(toolName: String, errorMessage: String): String {
-        val now = System.currentTimeMillis()
-        val lastErrorTime = toolErrorTimestamps[toolName]
-        if (lastErrorTime != null && (now - lastErrorTime) < TOOL_ERROR_COOLDOWN_MS) {
-            AppLogger.d(TAG, "Throttling repeated error for tool: $toolName")
-            return "$errorMessage\n\n(工具调用频率过高，相同错误已被抑制，请等待 ${(TOOL_ERROR_COOLDOWN_MS - (now - lastErrorTime)) / 1000}s 后重试)"
+    internal fun shouldEmitToolError(tool: AITool, errorMessage: String): Boolean {
+        val shouldEmit = toolErrorDeduplicator.shouldEmit(tool, errorMessage)
+        if (!shouldEmit) {
+            AppLogger.d(TAG, "Collapsed repeated tool error: ${tool.name}")
         }
-        toolErrorTimestamps[toolName] = now
-        return errorMessage
+        return shouldEmit
+    }
+
+    private fun collapseToolError(tool: AITool, errorMessage: String): String {
+        return if (shouldEmitToolError(tool, errorMessage)) {
+            errorMessage
+        } else {
+            "Repeated identical tool error suppressed."
+        }
     }
 
     // Available tools registry
@@ -439,7 +444,7 @@ class AIToolHandler private constructor(private val context: Context) {
                             toolName = tool.name,
                             success = false,
                             result = StringResultData(""),
-                            error = throttleToolError(tool.name, "Tool not found: ${tool.name}")
+                            error = collapseToolError(tool, "Tool not found: ${tool.name}")
                     )
             notifyToolExecutionResult(tool, notFoundResult)
             notifyToolExecutionFinished(tool)
@@ -454,7 +459,7 @@ class AIToolHandler private constructor(private val context: Context) {
                             toolName = tool.name,
                             success = false,
                             result = StringResultData(""),
-                            error = throttleToolError(tool.name, validationResult.errorMessage)
+                            error = collapseToolError(tool, validationResult.errorMessage)
                     )
             notifyToolExecutionResult(tool, validationFailedResult)
             notifyToolExecutionFinished(tool)
@@ -465,10 +470,10 @@ class AIToolHandler private constructor(private val context: Context) {
         return try {
             val result = executor.invoke(tool)
             if (!result.success && result.error != null) {
-                result.copy(error = throttleToolError(tool.name, result.error))
+                result.copy(error = collapseToolError(tool, result.error))
             } else {
                 if (result.success) {
-                    toolErrorTimestamps.remove(tool.name)
+                    toolErrorDeduplicator.clear(tool)
                 }
                 result
             }
@@ -478,7 +483,7 @@ class AIToolHandler private constructor(private val context: Context) {
                 toolName = tool.name,
                 success = false,
                 result = StringResultData(""),
-                error = throttleToolError(tool.name, e.message ?: "Unknown tool execution error")
+                error = collapseToolError(tool, e.message ?: "Unknown tool execution error")
             )
             notifyToolExecutionResult(tool, errorResult)
             return errorResult
@@ -560,7 +565,7 @@ class AIToolHandler private constructor(private val context: Context) {
                 toolName = tool.name,
                 success = false,
                 result = StringResultData(""),
-                error = throttleToolError(tool.name, e.message ?: "Unknown streaming tool execution error")
+                error = collapseToolError(tool, e.message ?: "Unknown streaming tool execution error")
             )
             notifyToolExecutionResult(tool, errorResult)
             throw e

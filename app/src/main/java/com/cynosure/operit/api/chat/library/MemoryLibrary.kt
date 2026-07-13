@@ -572,14 +572,24 @@ object MemoryLibrary {
                 existingFolders = existingFolders,
                 useEnglish = useEnglish
             )
+            val memorySavePrompt = MemorySearchSettingsPreferences(context, profileId)
+                .loadMemorySavePrompt()
 
-            val systemPrompt = FunctionalPrompts.buildKnowledgeGraphExtractionPrompt(
-                duplicatesPromptPart = duplicatesPromptPart,
-                existingMemoriesPrompt = existingMemoriesPrompt,
-                existingFoldersPrompt = existingFoldersPrompt,
-                currentPreferences = currentPreferences,
-                useEnglish = useEnglish
-            )
+            val systemPrompt = buildString {
+                append(
+                    FunctionalPrompts.buildKnowledgeGraphExtractionPrompt(
+                        duplicatesPromptPart = duplicatesPromptPart,
+                        existingMemoriesPrompt = existingMemoriesPrompt,
+                        existingFoldersPrompt = existingFoldersPrompt,
+                        currentPreferences = currentPreferences,
+                        useEnglish = useEnglish
+                    )
+                )
+                if (memorySavePrompt.isNotBlank()) {
+                    append("\n\n")
+                    append(memorySavePrompt.trim())
+                }
+            }
 
             val analysisMessage = buildAnalysisMessage(context, query, solution, conversationHistory, useEnglish)
             val messages = listOf(Pair("system", systemPrompt), Pair("user", analysisMessage)).toPromptTurns()

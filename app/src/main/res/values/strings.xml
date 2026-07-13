@@ -4218,6 +4218,9 @@
     <string name="character_card_tool_access_denied_runtime">该角色卡不允许使用此工具/来源</string>
     <string name="character_card_custom_prompt">自定义提示词</string>
     <string name="character_card_custom_prompt_placeholder">高级自定义提示词...</string>
+    <string name="character_card_add_prompt_files">添加提示词文件</string>
+    <string name="character_card_remove_prompt_file">移除提示词文件</string>
+    <string name="character_card_prompt_file_copy_failed">无法保存提示词文件</string>
     <string name="character_card_marks">备注</string>
     <string name="character_card_marks_placeholder">私人备注，不会影响AI...</string>
     <string name="character_card_edit_name">编辑名称</string>
@@ -6052,6 +6055,8 @@
     <string name="memory_search_calc_mode">计算方式</string>
     <string name="memory_search_weight_section">权重</string>
     <string name="memory_auto_save_settings_title">自动保存记忆</string>
+    <string name="memory_save_prompt_title">记忆保存提示词</string>
+    <string name="memory_save_prompt_description">追加到手动保存和自动保存记忆的系统提示词。留空时不追加。</string>
     <string name="memory_auto_save_interval_minutes">自动保存间隔（分钟）</string>
     <string name="memory_auto_save_interval_value">%1$d 分钟 · 范围 %2$d-%3$d</string>
     <string name="memory_auto_save_interval_hint">可调范围 %1$d-%2$d 分钟，默认 %3$d 分钟</string>
@@ -8002,5 +8007,18 @@
     <string name="workflow_node_type_global_ref">全局节点引用</string>
     <string name="workflow_global_node_ref_id_label">全局节点 ID</string>
     <string name="workflow_global_node_not_found">全局节点不存在: %1$s</string>
+    <string name="workflow_node_label_global_ref">全局引用</string>
+    <string name="workflow_global_node_missing">引用模板已缺失</string>
+    <string name="workflow_global_node_manage">管理全局节点</string>
+    <string name="workflow_global_node_create">创建全局模板</string>
+    <string name="workflow_global_node_select">选择全局模板</string>
+    <string name="workflow_global_node_empty">暂无全局模板</string>
+    <string name="workflow_global_node_add_reference">添加全局引用</string>
+    <string name="workflow_global_node_edit_template">编辑全局模板</string>
+    <string name="workflow_global_node_unlink">解除引用为普通节点</string>
+    <string name="workflow_global_node_load_failed">加载全局节点失败</string>
+    <string name="workflow_global_node_save_failed">保存全局节点失败</string>
+    <string name="workflow_global_node_delete_failed">删除全局节点失败</string>
+    <string name="workflow_global_node_unlink_failed">解除全局节点引用失败</string>
 
 </resources>

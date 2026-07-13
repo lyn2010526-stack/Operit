@@ -54,13 +54,14 @@ import kotlin.math.roundToInt
 fun MemorySearchSettingsDialog(
     currentConfig: MemorySearchConfig,
     autoSaveIntervalMinutes: Int,
+    memorySavePrompt: String,
     cloudConfig: CloudEmbeddingConfig,
     dimensionUsage: EmbeddingDimensionUsage,
     rebuildProgress: EmbeddingRebuildProgress,
     error: String?,
     isRebuilding: Boolean,
     onDismiss: () -> Unit,
-    onSave: (MemorySearchConfig, CloudEmbeddingConfig, Int) -> Unit,
+    onSave: (MemorySearchConfig, CloudEmbeddingConfig, Int, String) -> Unit,
     onRebuild: () -> Unit,
     onSimulateSearch: () -> Unit
 ) {
@@ -72,6 +73,7 @@ fun MemorySearchSettingsDialog(
     var editedAutoSaveIntervalMinutes by remember(autoSaveIntervalMinutes) {
         mutableFloatStateOf(autoSaveIntervalMinutes.toFloat())
     }
+    var editedMemorySavePrompt by remember(memorySavePrompt) { mutableStateOf(memorySavePrompt) }
 
     var cloudEnabled by remember(cloudConfig) { mutableStateOf(cloudConfig.enabled) }
     var endpoint by remember(cloudConfig) {
@@ -169,6 +171,15 @@ fun MemorySearchSettingsDialog(
                         ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedTextField(
+                        value = editedMemorySavePrompt,
+                        onValueChange = { editedMemorySavePrompt = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text(stringResource(R.string.memory_save_prompt_title)) },
+                        supportingText = { Text(stringResource(R.string.memory_save_prompt_description)) },
+                        minLines = 4,
+                        maxLines = 10
                     )
                 }
 
@@ -337,7 +348,8 @@ fun MemorySearchSettingsDialog(
                             edgeWeight = edgeWeight
                         ).normalized(),
                         editedCloudConfig,
-                        editedAutoSaveIntervalMinutes.roundToInt()
+                        editedAutoSaveIntervalMinutes.roundToInt(),
+                        editedMemorySavePrompt
                     )
                     Toast.makeText(context, settingsSavedMessage, Toast.LENGTH_SHORT).show()
                 }

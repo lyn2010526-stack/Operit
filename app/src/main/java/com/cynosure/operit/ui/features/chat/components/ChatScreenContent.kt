@@ -48,6 +48,7 @@ import com.cynosure.operit.ui.features.chat.components.style.bubble.BubbleImageS
 import com.cynosure.operit.ui.features.chat.webview.workspace.WorkspaceBackupManager
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
@@ -55,6 +56,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Share
@@ -163,13 +165,8 @@ fun ChatScreenContent(
     var showExportPlatformDialog by remember { mutableStateOf(false) }
     var showAndroidExportDialog by remember { mutableStateOf(false) }
     var showWindowsExportDialog by remember { mutableStateOf(false) }
-    var showExportProgressDialog by remember { mutableStateOf(false) }
-    var showExportCompleteDialog by remember { mutableStateOf(false) }
-    var exportProgress by remember { mutableStateOf(0f) }
-    var exportStatus by remember { mutableStateOf("") }
-    var exportSuccess by remember { mutableStateOf(false) }
-    var exportFilePath by remember { mutableStateOf<String?>(null) }
-    var exportErrorMessage by remember { mutableStateOf<String?>(null) }
+    var exportUiState by remember { mutableStateOf<ExportUiState>(ExportUiState.Idle) }
+    var exportJob by remember { mutableStateOf<Job?>(null) }
     var webContentDir by remember { mutableStateOf<File?>(null) }
     var editingMessageType by remember { mutableStateOf<String?>(null) }
     var pendingRollbackIndex by remember { mutableStateOf<Int?>(null) }
@@ -185,10 +182,12 @@ fun ChatScreenContent(
     val isSpeechSessionActive by actualViewModel.isSpeechSessionActive.collectAsState()
     val isSpeechPaused by actualViewModel.isSpeechPaused.collectAsState()
     val isAutoReadEnabled by actualViewModel.isAutoReadEnabled.collectAsState()
-    LaunchedEffect(isSpeechSessionActive, isSpeechPaused, isAutoReadEnabled) {
+    val isPlayAllActive by actualViewModel.isPlayAllActive.collectAsState()
+    val hasReadableAiMessages by actualViewModel.hasReadableAiMessages.collectAsState()
+    LaunchedEffect(isSpeechSessionActive, isSpeechPaused, isAutoReadEnabled, isPlayAllActive) {
         AppLogger.d(
             "ChatScreenContent",
-            "speechControls session=$isSpeechSessionActive paused=$isSpeechPaused autoRead=$isAutoReadEnabled visible=${isSpeechSessionActive || isSpeechPaused || isAutoReadEnabled}"
+            "speechControls session=$isSpeechSessionActive paused=$isSpeechPaused autoRead=$isAutoReadEnabled playAll=$isPlayAllActive visible=${isSpeechSessionActive || isSpeechPaused || isAutoReadEnabled || isPlayAllActive}"
         )
     }
     LaunchedEffect(pendingRollbackIndex) {
@@ -634,7 +633,7 @@ fun ChatScreenContent(
             }
 
             AnimatedVisibility(
-                visible = isSpeechSessionActive || isSpeechPaused || isAutoReadEnabled,
+                visible = hasReadableAiMessages || isSpeechSessionActive || isSpeechPaused || isPlayAllActive,
                 enter = fadeIn() + slideInHorizontally(initialOffsetX = { it }),
                 exit = fadeOut() + slideOutHorizontally(targetOffsetX = { it }),
                 modifier = Modifier
@@ -656,23 +655,41 @@ fun ChatScreenContent(
                     verticalAlignment = Alignment.Top,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    SmallFloatingActionButton(
-                        modifier = Modifier.align(Alignment.Top),
-                        onClick = {
-                            AppLogger.d(
-                                "ChatScreenContent",
-                                "speechControls pauseClick session=$isSpeechSessionActive paused=$isSpeechPaused autoRead=$isAutoReadEnabled"
-                            )
-                            actualViewModel.pauseSpeaking()
-                        },
-                        containerColor = MaterialTheme.colorScheme.secondary,
-                        contentColor = MaterialTheme.colorScheme.onSecondary
+                    AnimatedVisibility(
+                        visible = hasReadableAiMessages && !isSpeechSessionActive && !isPlayAllActive,
+                        enter = fadeIn(),
+                        exit = fadeOut(),
+                        modifier = Modifier.align(Alignment.Top)
                     ) {
-                        Icon(
-                            imageVector = Icons.Filled.Pause,
-                            contentDescription = stringResource(R.string.pause_reading),
-                            modifier = Modifier.size(24.dp)
-                        )
+                        SmallFloatingActionButton(
+                            onClick = {
+                                AppLogger.d("ChatScreenContent", "speechControls playAllClick")
+                                actualViewModel.playAllConversation()
+                            },
+                            containerColor = MaterialTheme.colorScheme.tertiary,
+                            contentColor = MaterialTheme.colorScheme.onTertiary
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.VolumeUp,
+                                contentDescription = stringResource(R.string.play_all_conversation),
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+
+                    AnimatedVisibility(visible = isSpeechSessionActive && !isSpeechPaused) {
+                        SmallFloatingActionButton(
+                            modifier = Modifier.align(Alignment.Top),
+                            onClick = { actualViewModel.pauseSpeaking() },
+                            containerColor = MaterialTheme.colorScheme.secondary,
+                            contentColor = MaterialTheme.colorScheme.onSecondary
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Pause,
+                                contentDescription = stringResource(R.string.pause_reading),
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
 
                     AnimatedVisibility(
@@ -681,42 +698,34 @@ fun ChatScreenContent(
                         exit = fadeOut(),
                         modifier = Modifier.align(Alignment.Top)
                     ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            SmallFloatingActionButton(
-                                onClick = {
-                                    AppLogger.d(
-                                        "ChatScreenContent",
-                                        "speechControls resumeClick session=$isSpeechSessionActive paused=$isSpeechPaused autoRead=$isAutoReadEnabled"
-                                    )
-                                    actualViewModel.resumeSpeaking()
-                                },
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.PlayArrow,
-                                    contentDescription = stringResource(R.string.resume_reading),
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
+                        SmallFloatingActionButton(
+                            onClick = { actualViewModel.resumeSpeaking() },
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.PlayArrow,
+                                contentDescription = stringResource(R.string.resume_reading),
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
 
-                            SmallFloatingActionButton(
-                                onClick = {
-                                    AppLogger.d(
-                                        "ChatScreenContent",
-                                        "speechControls stopClick session=$isSpeechSessionActive paused=$isSpeechPaused autoRead=$isAutoReadEnabled"
-                                    )
-                                    actualViewModel.stopSpeaking()
+                    AnimatedVisibility(visible = isSpeechSessionActive || isPlayAllActive) {
+                        SmallFloatingActionButton(
+                            onClick = { actualViewModel.stopSpeaking() },
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onError
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Stop,
+                                contentDescription = if (isPlayAllActive) {
+                                    stringResource(R.string.stop_play_all)
+                                } else {
+                                    stringResource(R.string.stop_reading)
                                 },
-                                containerColor = MaterialTheme.colorScheme.error,
-                                contentColor = MaterialTheme.colorScheme.onError
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.Stop,
-                                    contentDescription = stringResource(R.string.stop_reading),
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
+                                modifier = Modifier.size(24.dp)
+                            )
                         }
                     }
                 }
@@ -857,12 +866,14 @@ fun ChatScreenContent(
                     onDismiss = { showAndroidExportDialog = false },
                     onExport = { packageName, appName, iconUri, versionName, versionCode ->
                         showAndroidExportDialog = false
-                        showExportProgressDialog = true
-                        exportProgress = 0f
-                        exportStatus = context.getString(R.string.chat_starting_export)
+                        exportJob?.cancel()
+                        exportUiState = ExportUiState.Running(
+                            progress = 0f,
+                            status = context.getString(R.string.chat_starting_export),
+                        )
 
                         // 启动导出过程
-                        coroutineScope.launch {
+                        exportJob = coroutineScope.launch {
                             exportAndroidApp(
                                     context = context,
                                     packageName = packageName,
@@ -872,15 +883,14 @@ fun ChatScreenContent(
                                     iconUri = iconUri,
                                     webContentDir = webContentDir!!,
                                     onProgress = { progress, status ->
-                                        exportProgress = progress
-                                        exportStatus = status
+                                        exportUiState = ExportUiState.Running(progress, status)
                                     },
                                     onComplete = { success, filePath, errorMessage ->
-                                        showExportProgressDialog = false
-                                        exportSuccess = success
-                                        exportFilePath = filePath
-                                        exportErrorMessage = errorMessage
-                                        showExportCompleteDialog = true
+                                        exportUiState = ExportUiState.Completed(
+                                            success = success,
+                                            filePath = filePath,
+                                            errorMessage = errorMessage,
+                                        )
                                     }
                             )
                         }
@@ -895,27 +905,28 @@ fun ChatScreenContent(
                     onDismiss = { showWindowsExportDialog = false },
                     onExport = { appName, iconUri ->
                         showWindowsExportDialog = false
-                        showExportProgressDialog = true
-                        exportProgress = 0f
-                        exportStatus = context.getString(R.string.chat_starting_export)
+                        exportJob?.cancel()
+                        exportUiState = ExportUiState.Running(
+                            progress = 0f,
+                            status = context.getString(R.string.chat_starting_export),
+                        )
 
                         // 启动导出过程
-                        coroutineScope.launch {
+                        exportJob = coroutineScope.launch {
                             exportWindowsApp(
                                     context = context,
                                     appName = appName,
                                     iconUri = iconUri,
                                     webContentDir = webContentDir!!,
                                     onProgress = { progress, status ->
-                                        exportProgress = progress
-                                        exportStatus = status
+                                        exportUiState = ExportUiState.Running(progress, status)
                                     },
                                     onComplete = { success, filePath, errorMessage ->
-                                        showExportProgressDialog = false
-                                        exportSuccess = success
-                                        exportFilePath = filePath
-                                        exportErrorMessage = errorMessage
-                                        showExportCompleteDialog = true
+                                        exportUiState = ExportUiState.Completed(
+                                            success = success,
+                                            filePath = filePath,
+                                            errorMessage = errorMessage,
+                                        )
                                     }
                             )
                         }
@@ -924,21 +935,30 @@ fun ChatScreenContent(
         }
 
         // 导出进度对话框
-        if (showExportProgressDialog) {
+        val runningExport = exportUiState as? ExportUiState.Running
+        if (runningExport != null) {
             ExportProgressDialog(
-                    progress = exportProgress,
-                    status = exportStatus,
-                    onCancel = { showExportProgressDialog = false }
+                    progress = runningExport.progress,
+                    status = runningExport.status,
+                    onCancel = {
+                        exportJob?.cancel()
+                        exportJob = null
+                        exportUiState = ExportUiState.Idle
+                    }
             )
         }
 
         // 导出完成对话框
-        if (showExportCompleteDialog) {
+        val completedExport = exportUiState as? ExportUiState.Completed
+        if (completedExport != null) {
             ExportCompleteDialog(
-                    success = exportSuccess,
-                    filePath = exportFilePath,
-                    errorMessage = exportErrorMessage,
-                    onDismiss = { showExportCompleteDialog = false },
+                    success = completedExport.success,
+                    filePath = completedExport.filePath,
+                    errorMessage = completedExport.errorMessage,
+                    onDismiss = {
+                        exportJob = null
+                        exportUiState = ExportUiState.Idle
+                    },
                     onOpenFile = { filePath ->
                         try {
                             val file = File(filePath)

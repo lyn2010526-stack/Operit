@@ -4,6 +4,8 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import java.util.UUID
+import kotlinx.serialization.Serializable
 
 @Entity(
     tableName = "message_variants",
@@ -18,10 +20,13 @@ import androidx.room.PrimaryKey
     indices = [
         Index(value = ["chatId", "messageTimestamp"]),
         Index(value = ["chatId", "messageTimestamp", "variantIndex"], unique = true),
+        Index(value = ["syncId"], unique = true),
     ],
 )
+@Serializable
 data class MessageVariantEntity(
     @PrimaryKey(autoGenerate = true) val variantId: Long = 0,
+    val syncId: String = UUID.randomUUID().toString(),
     val chatId: String,
     val messageTimestamp: Long,
     val variantIndex: Int,
@@ -36,6 +41,9 @@ data class MessageVariantEntity(
     val outputDurationMs: Long = 0L,
     val waitDurationMs: Long = 0L,
     val completedAt: Long = 0L,
+    val revision: Long = 1L,
+    val updatedAt: Long = System.currentTimeMillis(),
+    val deletedAt: Long? = null,
 ) {
     fun applyTo(baseMessage: ChatMessage, variantCount: Int): ChatMessage {
         return baseMessage.copy(
@@ -62,9 +70,14 @@ data class MessageVariantEntity(
             variantIndex: Int,
             message: ChatMessage,
             variantId: Long = 0,
+            syncId: String = UUID.randomUUID().toString(),
+            revision: Long = 1L,
+            updatedAt: Long = System.currentTimeMillis(),
+            deletedAt: Long? = null,
         ): MessageVariantEntity {
             return MessageVariantEntity(
                 variantId = variantId,
+                syncId = syncId,
                 chatId = chatId,
                 messageTimestamp = messageTimestamp,
                 variantIndex = variantIndex,
@@ -79,6 +92,9 @@ data class MessageVariantEntity(
                 outputDurationMs = message.outputDurationMs,
                 waitDurationMs = message.waitDurationMs,
                 completedAt = message.completedAt,
+                revision = revision,
+                updatedAt = updatedAt,
+                deletedAt = deletedAt,
             )
         }
     }

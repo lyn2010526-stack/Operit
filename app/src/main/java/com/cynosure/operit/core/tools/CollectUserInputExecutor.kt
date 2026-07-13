@@ -58,7 +58,10 @@ class CollectUserInputExecutor : ToolExecutor {
                         type = BusinessEventType.TOOL_REQUESTED,
                         source = "collect_user_input",
                         entityId = requestId,
-                        attributes = mapOf("title" to request.title, "questionCount" to request.questions.size)
+                        attributes = mapOf(
+                            "title" to request.title,
+                            "questionCount" to request.questions.size.toString()
+                        )
                     )
                 )
                 val response = repository.awaitResponse(requestId)
@@ -146,7 +149,7 @@ class CollectUserInputExecutor : ToolExecutor {
             "Question keys must be unique"
         }
 
-        UserInputRequest(
+        return UserInputRequest(
             id = UUID.randomUUID().toString(),
             title = title,
             description = description,

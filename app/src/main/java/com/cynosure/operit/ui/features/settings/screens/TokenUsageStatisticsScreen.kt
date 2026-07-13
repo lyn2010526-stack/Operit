@@ -3,6 +3,7 @@ package com.cynosure.operit.ui.features.settings.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Analytics
@@ -31,6 +32,7 @@ import com.cynosure.operit.data.collects.PricingCurrency
 import com.cynosure.operit.data.model.BillingMode
 import com.cynosure.operit.data.preferences.ApiPreferences
 import com.cynosure.operit.data.repository.ChatHistoryManager
+import com.cynosure.operit.ui.common.ios.IosListSection
 import com.cynosure.operit.ui.components.CustomScaffold
 import java.util.Locale
 import kotlinx.coroutines.launch
@@ -655,23 +657,15 @@ private fun ExchangeRateSettingsCard(
     onRateInputChange: (String) -> Unit,
     onSave: () -> Unit
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    IosListSection(
+        title = stringResource(id = R.string.settings_exchange_rate_title),
+        footer = stringResource(id = R.string.settings_exchange_rate_subtitle),
+        modifier = Modifier.fillMaxWidth()
+    ) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text(
-                text = stringResource(id = R.string.settings_exchange_rate_title),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold
-            )
-
-            Text(
-                text = stringResource(id = R.string.settings_exchange_rate_subtitle),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
             OutlinedTextField(
                 value = rateInput,
                 onValueChange = { onRateInputChange(it) },
@@ -725,25 +719,22 @@ private fun TokenUsageModelCard(
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(4.dp))
-                    AssistChip(
-                        onClick = { },
-                        label = {
-                            Text(
-                                text = when (billingMode) {
-                                    BillingMode.TOKEN -> stringResource(id = R.string.settings_billing_mode_token)
-                                    BillingMode.COUNT -> stringResource(id = R.string.settings_billing_mode_count)
-                                },
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        },
-                        colors = AssistChipDefaults.assistChipColors(
-                            containerColor = when (billingMode) {
-                                BillingMode.TOKEN -> MaterialTheme.colorScheme.secondaryContainer
-                                BillingMode.COUNT -> MaterialTheme.colorScheme.tertiaryContainer
-                            }
-                        ),
-                        modifier = Modifier.height(24.dp)
-                    )
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = when (billingMode) {
+                            BillingMode.TOKEN -> MaterialTheme.colorScheme.secondaryContainer
+                            BillingMode.COUNT -> MaterialTheme.colorScheme.tertiaryContainer
+                        }
+                    ) {
+                        Text(
+                            text = when (billingMode) {
+                                BillingMode.TOKEN -> stringResource(id = R.string.settings_billing_mode_token)
+                                BillingMode.COUNT -> stringResource(id = R.string.settings_billing_mode_count)
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = onResetClick) {

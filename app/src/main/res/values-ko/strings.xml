@@ -3766,6 +3766,9 @@
     <string name="character_card_tool_access_denied_runtime">이 캐릭터 카드는 이 도구/소스를 사용할 수 없습니다.</string>
     <string name="character_card_custom_prompt">사용자 정의 프롬프트</string>
     <string name="character_card_custom_prompt_placeholder">고급 사용자 정의 프롬프트...</string>
+    <string name="character_card_add_prompt_files">Add prompt files</string>
+    <string name="character_card_remove_prompt_file">Remove prompt file</string>
+    <string name="character_card_prompt_file_copy_failed">Unable to save prompt file</string>
     <string name="character_card_marks">참고사항</string>
     <string name="character_card_marks_placeholder">비공개 메모는 AI에 영향을 미치지 않습니다...</string>
     <string name="character_card_edit_name">이름 수정</string>
@@ -5274,6 +5277,8 @@
     <string name="memory_search_calc_mode">점수 모드</string>
     <string name="memory_search_weight_section">가중치</string>
     <string name="memory_auto_save_settings_title">자동 저장 메모리</string>
+    <string name="memory_save_prompt_title">Memory save prompt</string>
+    <string name="memory_save_prompt_description">Appended to the system prompt for manual and automatic memory saves. Leave empty to append nothing.</string>
     <string name="memory_auto_save_interval_minutes">자동 저장 간격(분)</string>
     <string name="memory_auto_save_interval_value">%1$d분 · 범위 %2$d-%3$d</string>
     <string name="memory_auto_save_interval_hint">조정 가능한 범위 %1$d-%2$d분, 기본값 %3$d분</string>
@@ -7061,4 +7066,9 @@
     <string name="ai_message_use_package_failed">use_package 호출 실패: %1$s</string>
     <string name="ai_message_use_package_empty">use_package 반환 결과가 비어 있습니다.</string>
     <string name="ai_message_package_warmup_item">%1$d. 패키지 %2$s (%3$d회 적중)</string>
+    <string name="play_all_conversation">모든 AI 메시지 재생</string>
+    <string name="stop_play_all">전체 재생 중지</string>
+    <string name="toolbox_sort_default">기본 순서</string>
+    <string name="toolbox_sort_name_asc">이름 A-Z</string>
+    <string name="toolbox_sort_name_desc">이름 Z-A</string>
 </resources>
