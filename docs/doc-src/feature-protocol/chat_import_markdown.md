@@ -1,3 +1,6 @@
+---
+based_on: test_example/chat_import_markdown_example.md
+---
 # Markdown 聊天记录导入格式说明
 
 本文档介绍 Operit 应用支持的新版 Markdown 格式聊天记录导入规范。
